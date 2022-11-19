@@ -1,5 +1,5 @@
-# TPVFormer
-An academic alternative to Tesla's Occupancy Network. Under construction.
+# TPVFormer: An academic alternative to Tesla's Occupancy Network
+Under construction.
 
 Paper, code, and models are coming soon!
 
