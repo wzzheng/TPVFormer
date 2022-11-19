@@ -34,6 +34,8 @@ Paper, code, and models are coming soon!
 
 ![](./assets/vis3.png)
 
+![](./assets/vis4.png)
+
 ## Lidar Segmentation Results
 
 ![](./assets/results.png)
