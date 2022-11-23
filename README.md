@@ -9,6 +9,8 @@ Paper, code, and models are coming soon!
 
 ![legend](./assets/legend.png)
 
+### A full demo video can be downloaded [here](https://cloud.tsinghua.edu.cn/f/594cadf14ae949228df1/).
+
 ## Comparisons with Tesla's Occupancy Network
 
 |                          | **Tesla's Occupancy Network**        | **Our TPVFormer**                |
