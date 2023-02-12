@@ -11,6 +11,8 @@ Under construction.
 
 ![legend](./assets/legend.png)
 
+### A full demo video can be downloaded [here](https://cloud.tsinghua.edu.cn/f/594cadf14ae949228df1/).
+
 ## Installation
 1. Create conda environment with python version 3.8
 
