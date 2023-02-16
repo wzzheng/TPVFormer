@@ -1,9 +1,17 @@
 # TPVFormer: An academic alternative to Tesla's Occupancy Network
 Under construction. 
 
+[Paper](https://arxiv.org/pdf/2302.07817) 
+
+> Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction
+> Yuanhui Huang\*, [Wenzhao Zheng](https://wzzheng.net/)\* $\dagger$, [Yunpeng Zhang](https://scholar.google.com/citations?user=UgadGL8AAAAJ&hl=zh-CN&oi=ao), [Jie Zhou](https://scholar.google.com/citations?user=6a79aPwAAAAJ&hl=en&authuser=1), [Jiwen Lu](http://ivg.au.tsinghua.edu.cn/Jiwen_Lu/)$\ddagger$
+
+\* Equal contribution $\dagger$ Project leader $\ddagger$ Corresponding author
+
 ## News
 
-2023/2/12 Initial code release.
+- **[2023/2/16]** Paper released on [arXiv](https://arxiv.org/abs/2302.07817).
+- **[2023/2/12]** Initial code release.
 
 ## Demo
 
@@ -13,7 +21,11 @@ Under construction.
 
 ### A full demo video can be downloaded [here](https://cloud.tsinghua.edu.cn/f/594cadf14ae949228df1/).
 
+## Introduction
+Modern methods for vision-centric autonomous driving perception widely adopt the bird's-eye-view (BEV) representation to describe a 3D scene. Despite its better efficiency than voxel representation, it has difficulty describing the fine-grained 3D structure of a scene with a single plane. To address this, we propose a tri-perspective view (TPV) representation which accompanies BEV with two additional perpendicular planes. We model each point in the 3D space by summing its projected features on the three planes. To lift image features to the 3D TPV space, we further propose a transformer-based TPV encoder (TPVFormer) to obtain the TPV features effectively. We employ the attention mechanism to aggregate the image features corresponding to each query in each TPV plane. Experiments show that our model trained with sparse supervision effectively predicts the semantic occupancy for all voxels. We demonstrate for the first time that using only camera inputs can achieve comparable performance with LiDAR-based methods on the LiDAR segmentation task on nuScenes.
+
 ## Installation
+
 1. Create conda environment with python version 3.8
 
 2. Install pytorch and torchvision with versions specified in requirements.txt
@@ -77,3 +89,17 @@ bash launcher.sh config/tpv04_occupancy.py out/tpv_occupancy --lovasz-input voxe
 ## Lidar Segmentation Results
 
 ![](./assets/results.png)
+
+
+## Citation
+
+If you find this project helpful, please consider citing the following paper:
+```
+@article{huang2023tri,
+    title={Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction},
+    author={Huang, Yuanhui and Zheng, Wenzhao and Zhang, Yunpeng and Zhou, Jie and Lu, Jiwen },
+    journal={arXiv preprint arXiv:2302.07817},
+    year={2023}
+}
+```
+
