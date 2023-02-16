@@ -5,7 +5,7 @@ Under construction.
 
 > Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction
 
-> Yuanhui Huang\*, [Wenzhao Zheng](https://wzzheng.net/)\* $\dagger$, [Yunpeng Zhang](https://scholar.google.com/citations?user=UgadGL8AAAAJ&hl=zh-CN&oi=ao), [Jie Zhou](https://scholar.google.com/citations?user=6a79aPwAAAAJ&hl=en&authuser=1), [Jiwen Lu](http://ivg.au.tsinghua.edu.cn/Jiwen_Lu/)$\ddagger$
+> [Yuanhui Huang](https://scholar.google.com/citations?hl=zh-CN&user=LKVgsk4AAAAJ)*, [Wenzhao Zheng](https://wzzheng.net/)\* $\dagger$, [Yunpeng Zhang](https://scholar.google.com/citations?user=UgadGL8AAAAJ&hl=zh-CN&oi=ao), [Jie Zhou](https://scholar.google.com/citations?user=6a79aPwAAAAJ&hl=en&authuser=1), [Jiwen Lu](http://ivg.au.tsinghua.edu.cn/Jiwen_Lu/)$\ddagger$
 
 \* Equal contribution $\dagger$ Project leader $\ddagger$ Corresponding author
 
@@ -13,6 +13,7 @@ Under construction.
 
 - **[2023/2/16]** Paper released on [arXiv](https://arxiv.org/abs/2302.07817).
 - **[2023/2/12]** Initial code release.
+- **[2022/11/20]** Demo release.
 
 ## Demo
 
