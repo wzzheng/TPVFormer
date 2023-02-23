@@ -40,6 +40,19 @@ Modern methods for vision-centric autonomous driving perception widely adopt the
 1. Download pretrain weights from https://github.com/zhiqi-li/storage/releases/download/v1.0/r101_dcn_fcos3d_pretrain.pth and put it in ckpts/
 
 2. Create soft link from data/nuscenes to your_nuscenes_path
+    The dataset should be organized as follows:
+
+```
+TPVFormer/data
+    nuscenes                 -    downloaded from www.nuscenes.org
+        lidarseg
+        maps
+        samples
+        sweeps
+        v1.0-trainval
+    nuscenes_infos_train.pkl
+    nuscenes_infos_val.pkl
+```
 
 3. Download train/val pickle files and put them in data/
 nuscenes_infos_train.pkl
