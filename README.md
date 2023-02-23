@@ -11,6 +11,7 @@ Under construction.
 
 ## News
 
+- **[2023/2/23]** Visualization code has been released!
 - **[2023/2/16]** Paper released on [arXiv](https://arxiv.org/abs/2302.07817).
 - **[2023/2/12]** Initial code release.
 - **[2022/11/20]** Demo release.
