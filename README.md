@@ -11,7 +11,8 @@ Under construction.
 
 ## News
 
-- **[2023/2/23]** Visualization code has been released!
+- **[2023/2/26]** See [SurroundOcc](https://github.com/weiyithu/SurroundOcc) for a more dense 3D occupancy prediction!
+- **[2023/2/23]** Visualization code has been released.
 - **[2023/2/16]** Paper released on [arXiv](https://arxiv.org/abs/2302.07817).
 - **[2023/2/12]** Initial code release.
 - **[2022/11/20]** Demo release.
@@ -106,6 +107,11 @@ bash launcher.sh config/tpv04_occupancy.py out/tpv_occupancy --lovasz-input voxe
 
 ![](./assets/results.png)
 
+
+## Related Projects
+Our code is based on [BEVFormer](https://github.com/fundamentalvision/BEVFormer) and [Cylinder3D](https://github.com/xinge008/Cylinder3D). Many thanks to them!
+
+Welcome to see  [SurroundOcc](https://github.com/weiyithu/SurroundOcc) for a more dense 3D occupancy prediction. You can also use [SurroundOcc](https://github.com/weiyithu/SurroundOcc)'s generated dense occupancy ground truths for training instead of sparse lidar supervision.
 
 ## Citation
 
