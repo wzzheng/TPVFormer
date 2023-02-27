@@ -3,7 +3,7 @@ Under construction.
 
 [Paper](https://arxiv.org/pdf/2302.07817) 
 
-> Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction
+> Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction, CVPR 2023
 
 > [Yuanhui Huang](https://scholar.google.com/citations?hl=zh-CN&user=LKVgsk4AAAAJ)*, [Wenzhao Zheng](https://wzzheng.net/)\* $\dagger$, [Yunpeng Zhang](https://scholar.google.com/citations?user=UgadGL8AAAAJ&hl=zh-CN&oi=ao), [Jie Zhou](https://scholar.google.com/citations?user=6a79aPwAAAAJ&hl=en&authuser=1), [Jiwen Lu](http://ivg.au.tsinghua.edu.cn/Jiwen_Lu/)$\ddagger$
 
@@ -11,6 +11,7 @@ Under construction.
 
 ## News
 
+- **[2023/2/28]** TPVFormer is accepted to CVPR 2023!
 - **[2023/2/26]** See [SurroundOcc](https://github.com/weiyithu/SurroundOcc) for a more dense 3D occupancy prediction!
 - **[2023/2/23]** Visualization code has been released.
 - **[2023/2/16]** Paper released on [arXiv](https://arxiv.org/abs/2302.07817).
