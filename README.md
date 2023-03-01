@@ -1,7 +1,7 @@
 # TPVFormer: An academic alternative to Tesla's Occupancy Network
 Under construction. 
 
-### [Paper](https://arxiv.org/pdf/2302.07817)   [Project Page](https://wzzheng.net/TPVFormer/)
+### [Paper](https://arxiv.org/pdf/2302.07817) | [Project Page](https://wzzheng.net/TPVFormer/) | [Leaderboard](https://www.nuscenes.org/lidar-segmentation?externalData=all&mapData=all&modalities=Camera)
 
 > Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction, CVPR 2023
 
