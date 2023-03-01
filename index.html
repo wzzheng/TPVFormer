@@ -1,0 +1,259 @@
+<!doctype html>
+<html>
+<head>
+<title>TPVFormer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,700" rel="stylesheet">
+<link rel="icon" href="images/logo3.png">
+<link href="style.css" rel="stylesheet">
+<style>
+  .container_2{
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
+}
+.video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+  .collapsible {
+    background-color: #777;
+    color: white;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+  }
+
+  .active, .collapsible:hover {
+    background-color: #555;
+  }
+  
+  .content {
+    padding: 0 18px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+    background-color: #f1f1f1;
+  }
+</style>
+
+<style>
+.paperthumb {
+  float:left; width: 120px; margin: 3px 10px 7px 0;
+}
+.paperdesc {
+  clear: both;
+}
+</style>
+</head>
+
+<body class="nd-docs">
+<div class="nd-pageheader">
+ <div class="container">
+ <p class="lead" style="font-size:30px">
+    <b><a href="https://arxiv.org/abs/2302.07817">Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction</a></b>
+  <address style="font-size: 110%;">
+    <nobr><a href="https://scholar.google.com/citations?&user=LKVgsk4AAAAJ">Yuanhui Huang</a><sup>*1</sup>,</nobr>
+    <nobr><a href="https://wzzheng.net/">Wenzhao Zheng</a><sup>*†1</sup>,</nobr>
+    <nobr><a href="https://scholar.google.com/citations?user=UgadGL8AAAAJ&hl=zh-CN&oi=ao">Yunpeng Zhang</a><sup>2</sup>,</nobr>
+    <nobr><a href="https://scholar.google.com/citations?user=6a79aPwAAAAJ&hl=en">Jie Zhou</a><sup>1</sup>,</nobr>
+    <nobr><a href="http://ivg.au.tsinghua.edu.cn/Jiwen_Lu/">Jiwen Lu</a><sup>‡1</sup>
+  <br>
+      <nobr><sup>1</sup>Tsinghua University,</nobr>
+      <nobr><sup>2</sup>PhiGent Robotics</nobr>
+  </address>
+   <!-- <div>IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2021</div> -->
+  <address style="font-size: 120%;">
+	 <!-- <br> -->
+  [<a href="https://arxiv.org/pdf/2302.07817"><b>Paper(Arxiv)</b></a>]&nbsp;&nbsp;&nbsp;&nbsp;
+  <!-- [<a href="https://www.youtube.com/">Video(Youtube)</a>]&nbsp;&nbsp;&nbsp;&nbsp; -->
+  [<a href="https://github.com/wzzheng/tpvformer"><b>Code(GitHub)</b></a>]&nbsp;&nbsp;&nbsp;&nbsp;
+  <!-- [<a href="https://zhuanlan.zhihu.com">Post(Zhihu)</a>] -->
+  </address>
+  <small>*Equal contribution. † Project Leader. ‡Corresponding author.</small>
+ </div>
+ </p>
+ </div>
+</div> <!-- end nd-pageheader -->
+
+<div class="container">
+
+
+<p align="center">
+  <video width="90%" controls>
+    <source src="videos/demo_small.mp4" type="video/mp4">
+  </video>
+</p>
+
+<p align="center">
+    <img src="images/teaser.png" width="90%">
+</p>
+<p><b>Overview of our contributions.</b> Given only surround-camera RGB images as inputs, our model (trained using only sparse LiDAR point supervision) can predict the semantic occupancy for all volumes in the 3D space.
+  This task is challenging as it requires both geometric and semantic understandings of the 3D scene.
+  We observe that our model can produce even more comprehensive and consistent volume occupancy than the groundtruth on the validation set (not seen during training) of nuScenes.
+  Despite the lack of geometric inputs like LiDAR, our model can accurately identify the 3D positions and sizes of close and distant objects.
+  Particularly, our model even successfully identifies the partially occluded bicycle captured only by two LiDAR points, demonstrating the potential advantage of vision-based 3D semantic occupancy prediction.</p>
+
+
+<!-- <h2>Abstract</h2><hr>
+<p>Modern methods for vision-centric autonomous driving perception widely adopt the bird's-eye-view (BEV) representation to describe a 3D scene.
+  Despite its better efficiency than voxel representation, it has difficulty describing the fine-grained 3D structure of a scene with a single plane.
+  To address this, we propose a tri-perspective view (TPV) representation which accompanies BEV with two additional perpendicular planes.
+  We model each point in the 3D space by summing its projected features on the three planes. 
+  To lift image features to the 3D TPV space, we further propose a transformer-based TPV encoder (TPVFormer) to obtain the TPV features effectively.
+  We employ the attention mechanism to aggregate the image features corresponding to each query in each TPV plane. 
+  Experiments show that our model trained with sparse supervision effectively predicts the semantic occupancy for all voxels.
+  We demonstrate for the first time that using only camera inputs can achieve comparable performance with LiDAR-based methods on the LiDAR segmentation task on nuScenes.</p> -->
+
+
+<h2>Tri-Perspective View (TPV)</h2><hr>
+<p>Modern methods for vision-centric autonomous driving perception widely adopt the bird's-eye-view (BEV) representation to describe a 3D scene.
+  Despite its better efficiency than voxel representation, it has difficulty describing the fine-grained 3D structure of a scene with a single plane.
+  To address this, we propose a tri-perspective view (TPV) representation which accompanies BEV with two additional perpendicular planes. </p>
+
+<p align="center">
+    <img src="images/comparison.png" width="90%">
+</p>
+<!-- <p><b>Comparisons of TPV with voxel and BEV representation.</b> 
+  While BEV is more efficient than the voxel representation, it discards the height information and cannot comprehensively describe a 3D scene.</p> -->
+
+<p> TPV models each point in the 3D space by summing its projected features on the three planes. </p>
+
+
+<h2>TPVFormer</h2><hr>
+<p> To lift image features to the 3D TPV space, we further propose a transformer-based TPV encoder (TPVFormer) to obtain the TPV features effectively. 
+  Taking camera images as inputs, the proposed TPVFormer only uses sparse LiDAR semantic labels for training but can effectively predict the semantic occupancy for all voxels. <p>
+
+<p align="center">
+     <img src="images/overview.png" width="90%">
+</p>
+
+We employ an image backbone network to extract multi-scale features for multi-camera images. 
+We then perform cross-attention to adaptively lift 2D features to the TPV space and use cross-view hybrid attention to enable the interactions between TPV planes.
+To predict the semantic occupancy of a point in the 3D space, we apply a lightweight prediction head on the sum of projected features on the three TPV planes.
+
+<p align="center">
+  <img src="images/framework.png" width="90%">
+</p>
+
+
+<h2>Results</h2><hr>
+
+<p>We perform three tasks: 3D semantic occupancy prediction, LiDAR segmentation, and semantic scene completion (SSC). For all tasks, our model only uses RGB images as inputs. </p>
+
+<h4>3D Semantic Occupancy Prediction</h4><hr>
+
+As dense semantic labels are difficult to obtain, we formulate a practical yet challenging task for vision-based 3D semantic occupancy prediction.
+Under this task, the model is only trained using sparse semantic labels (LiDAR points) but is required to produce a semantic occupancy for all the voxels in the concerned 3D space during testing.
+Our method is the first to demonstrate effective results on this challenging task.
+
+
+<p></p>
+
+<p align="center">
+  <img src="images/vis1.png" width="90%">
+</p>
+<b>Visualization results on 3D semantic occupancy prediction and nuScenes LiDAR segmentation.</b> Our method can generate more comprehensive prediction results than the LiDAR segmentation ground truth.
+
+<p> Given the simplicity of our segmentation head, we can adjust the resolution of TPV planes at test time arbitrarily without retraining the network.  </p>
+
+<p></p>
+<p align="center">
+  <img src="images/vis2.png" width="90%">
+</p>
+<b>Arbitrary resolution at test time.</b> We can adjust the prediction resolution through interpolation at test time.
+As resolution increases, more details about the 3D objects are captured.
+
+<p></p>
+<p align="center">
+  <img src="images/vis3.png" width="90%">
+</p>
+<b>Prediction of small and rare objects.</b> We highlight bicycles, motorcycles and pedestrians with red, blue and yellow circles, respectively.
+Note that although some of these objects are barely visible in RGB images, our model still predicts them successfully.
+
+<p></p>
+<h4>LiDAR Segmentation</h4><hr>
+
+<p align="center">
+  <img src="images/lidar_seg.png" width="90%">
+</p>
+<p><b>LiDAR segmentation results on nuScenes test set.</b> 
+Despite critical modal difference, our TPVFormer-Base achieves comparable performance with LiDAR-based methods.
+This is nontrivial since our method needs to reconstruct the complete 3D scene at a high resolution from only 2D image input, while the 3D structural information is readily available in the point clouds for LiDAR-based methods.</p>
+
+<p align="center">
+  <img src="images/nuscenes.png" width="90%">
+</p>
+<p><b>Official camera-only LiDAR segmentation leaderboard on nuScenes.</b> 
+We are the first to demonstrate the potential of vision-based methods on LiDAR segmentation.
+
+
+<h4>Semantic Scene Completion</h4>
+
+<p align="center">
+  <img src="images/ssc.png" width="90%">
+</p>
+<p><b>Semantic scene completion results on SemanticKITTI test set.</b> 
+  TPVFormer outperforms all other methods in both IoU and mIoU, which demonstrates the effectiveness of TPVFormer in occupancy and semantics prediction.</p>
+
+
+
+<p>
+<div class="card">
+<h3 class="card-header">Bibtex</h3>
+<div class="card-block">
+<pre class="card-text clickselect">
+@article{huang2023tri,
+    title={Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction},
+    author={Huang, Yuanhui and Zheng, Wenzhao and Zhang, Yunpeng and Zhou, Jie and Lu, Jiwen},
+    journal={arXiv preprint arXiv:2302.07817},
+    year={2023}
+}
+</pre>
+</div>
+</div>
+</p>
+
+
+<p align="right">
+     <a href="https://hanlab.mit.edu/projects/anycost-gan/">Website Template</a>
+</p>
+
+</div>
+</div> <!-- row -->
+
+</div> <!-- container -->
+
+<script>
+  var coll = document.getElementsByClassName("collapsible");
+  var i;
+  
+  for (i = 0; i < coll.length; i++) {
+    coll[i].addEventListener("click", function() {
+      this.classList.toggle("active");
+      var content = this.nextElementSibling;
+      if (content.style.maxHeight){
+        content.style.maxHeight = null;
+      } else {
+        content.style.maxHeight = content.scrollHeight * 50+ "px";
+      } 
+      content.style.height = "550%";
+    });
+  }
+</script>
+
+</body>
+</html>
+
+

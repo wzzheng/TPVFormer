@@ -1,1 +1,0 @@
-from .tpvformer_head import TPVFormerHead
