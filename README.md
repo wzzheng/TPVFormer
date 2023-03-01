@@ -1,7 +1,7 @@
 # TPVFormer: An academic alternative to Tesla's Occupancy Network
 Under construction. 
 
-[Paper](https://arxiv.org/pdf/2302.07817) 
+### [Paper](https://arxiv.org/pdf/2302.07817)   [Project Page](https://wzzheng.net/TPVFormer/)
 
 > Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction, CVPR 2023
 
@@ -93,21 +93,6 @@ bash launcher.sh config/tpv04_occupancy.py out/tpv_occupancy --lovasz-input voxe
 | **Video Context**        | **Yes**                              | Not yet                          |
 | **Training Time**        | ~100,000 gpu hours                   | **~300 gpu hours**               |
 | **Inference Time**       | **~10 ms on the Tesla FSD computer** | ~290 ms on a single A100         |
-
-## Visualizations
-
-![](./assets/vis1.png)
-
-![](./assets/vis2.png)
-
-![](./assets/vis3.png)
-
-![](./assets/vis4.png)
-
-## Lidar Segmentation Results
-
-![](./assets/results.png)
-
 
 ## Related Projects
 Our code is based on [BEVFormer](https://github.com/fundamentalvision/BEVFormer) and [Cylinder3D](https://github.com/xinge008/Cylinder3D). Many thanks to them!
