@@ -43,7 +43,16 @@ Modern methods for vision-centric autonomous driving perception widely adopt the
 1. Download pretrain weights from https://github.com/zhiqi-li/storage/releases/download/v1.0/r101_dcn_fcos3d_pretrain.pth and put it in ckpts/
 
 2. Create soft link from data/nuscenes to your_nuscenes_path
-    The dataset should be organized as follows:
+    
+3. Download our generated train/val pickle files and put them in data/
+  nuscenes_infos_train.pkl
+  https://cloud.tsinghua.edu.cn/f/ede3023e01874b26bead/?dl=1
+  nuscenes_infos_val.pkl
+  https://cloud.tsinghua.edu.cn/f/61d839064a334630ac55/?dl=1
+
+  
+
+  The dataset should be organized as follows:
 
 ```
 TPVFormer/data
@@ -56,12 +65,6 @@ TPVFormer/data
     nuscenes_infos_train.pkl
     nuscenes_infos_val.pkl
 ```
-
-3. Download train/val pickle files and put them in data/
-nuscenes_infos_train.pkl
-https://cloud.tsinghua.edu.cn/f/ede3023e01874b26bead/?dl=1
-nuscenes_infos_val.pkl
-https://cloud.tsinghua.edu.cn/f/61d839064a334630ac55/?dl=1
 
 ## Getting Started
 1. Train TPVFormer for lidar segmentation task on A100 with 40G GPU memory.
