@@ -9,6 +9,7 @@
 
 ## News
 
+- **[2023/3/3]** We have reorganized the code to improve readability.  
 - **[2023/2/28]** TPVFormer is accepted to CVPR 2023!
 - **[2023/2/26]** See [SurroundOcc](https://github.com/weiyithu/SurroundOcc) for a more dense 3D occupancy prediction!
 - **[2023/2/23]** Visualization code has been released.
