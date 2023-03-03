@@ -15,6 +15,8 @@ dataset_params = dict(
 )
 
 occupancy = True
+lovasz_input = 'voxel'
+ce_input = 'voxel'
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 
@@ -22,13 +24,14 @@ _dim_ = 256
 _pos_dim_ = _dim_//2
 _ffn_dim_ = _dim_*2
 _num_levels_ = 4
-bev_h_ = 100
-bev_w_ = 100
-bev_z_ = 8
+_num_cams_ = 6
+tpv_h_ = 100
+tpv_w_ = 100
+tpv_z_ = 8
 scale_h = 1
 scale_w = 1
 scale_z = 1
-grid_size = [bev_h_*scale_h, bev_w_*scale_w, bev_z_*scale_z]
+grid_size = [tpv_h_*scale_h, tpv_w_*scale_w, tpv_z_*scale_z]
 num_points_in_pillar = [4, 32, 32]
 num_points = [8, 64, 64]
 nbr_class = 18
@@ -36,11 +39,11 @@ nbr_class = 18
 model = dict(
     type='TPVFormer',
     use_grid_mask=True,
-    fusion_head = dict(
-        type='TPVFuser',
-        bev_h=bev_h_,
-        bev_w=bev_w_,
-        bev_z=bev_z_,
+    tpv_aggregator = dict(
+        type='TPVAggregator',
+        tpv_h=tpv_h_,
+        tpv_w=tpv_w_,
+        tpv_z=tpv_z_,
         nbr_classes=nbr_class,
         in_dims=_dim_,
         hidden_dims=2*_dim_,
@@ -68,58 +71,57 @@ model = dict(
         add_extra_convs='on_output',
         num_outs=4,
         relu_before_extra_convs=True),
-    pts_bbox_head=dict(
+    tpv_head=dict(
         type='TPVFormerHead',
-        bev_h=bev_h_,
-        bev_w=bev_w_,
-        bev_z=bev_z_,
+        tpv_h=tpv_h_,
+        tpv_w=tpv_w_,
+        tpv_z=tpv_z_,
         pc_range=point_cloud_range,
-        transformer=dict(
-            type='TPVPerceptionTransformer',
-            embed_dims=_dim_,
-            encoder=dict(
-                type='TPVFormerEncoder',
-                bev_h=bev_h_,
-                bev_w=bev_w_,
-                bev_z=bev_z_,
-                num_layers=3,
-                pc_range=point_cloud_range,
-                num_points_in_pillar=num_points_in_pillar,
-                return_intermediate=False,
-                transformerlayers=dict(
-                    type='TPVFormerLayer',
-                    attn_cfgs=[
-                        dict(
-                            type='TPVTemporalSelfAttention',
-                            embed_dims=_dim_,
-                            num_levels=1),
-                        dict(
-                            type='TPVSpatialCrossAttention',
-                            pc_range=point_cloud_range,
-                            deformable_attention=dict(
-                                type='TPVMSDeformableAttention3D',
-                                embed_dims=_dim_,
-                                num_points=num_points,
-                                num_z_anchors=num_points_in_pillar,
-                                num_levels=_num_levels_,
-                                floor_sampling_offset=False,
-                                bev_h=bev_h_,
-                                bev_w=bev_w_,
-                                bev_z=bev_z_,
-                            ),
-                            embed_dims=_dim_,
-                            bev_h=bev_h_,
-                            bev_w=bev_w_,
-                            bev_z=bev_z_,
-                        )
-                    ],
-                    feedforward_channels=_ffn_dim_,
-                    ffn_dropout=0.1,
-                    operation_order=('self_attn', 'norm', 'cross_attn', 'norm',
-                                     'ffn', 'norm')))),
+        num_feature_levels=_num_levels_,
+        num_cams=_num_cams_,
+        embed_dims=_dim_,
         positional_encoding=dict(
             type='LearnedPositionalEncoding',
             num_feats=_pos_dim_,
-            row_num_embed=bev_h_,
-            col_num_embed=bev_w_,
-            )))
+            row_num_embed=tpv_h_,
+            col_num_embed=tpv_w_),
+        encoder=dict(
+            type='TPVFormerEncoder',
+            tpv_h=tpv_h_,
+            tpv_w=tpv_w_,
+            tpv_z=tpv_z_,
+            num_layers=3,
+            pc_range=point_cloud_range,
+            num_points_in_pillar=num_points_in_pillar,
+            return_intermediate=False,
+            transformerlayers=dict(
+                type='TPVFormerLayer',
+                attn_cfgs=[
+                    dict(
+                        type='TPVCrossViewHybridAttention',
+                        embed_dims=_dim_,
+                        num_levels=1),
+                    dict(
+                        type='TPVImageCrossAttention',
+                        pc_range=point_cloud_range,
+                        deformable_attention=dict(
+                            type='TPVMSDeformableAttention3D',
+                            embed_dims=_dim_,
+                            num_points=num_points,
+                            num_z_anchors=num_points_in_pillar,
+                            num_levels=_num_levels_,
+                            floor_sampling_offset=False,
+                            tpv_h=tpv_h_,
+                            tpv_w=tpv_w_,
+                            tpv_z=tpv_z_,
+                        ),
+                        embed_dims=_dim_,
+                        tpv_h=tpv_h_,
+                        tpv_w=tpv_w_,
+                        tpv_z=tpv_z_,
+                    )
+                ],
+                feedforward_channels=_ffn_dim_,
+                ffn_dropout=0.1,
+                operation_order=('self_attn', 'norm', 'cross_attn', 'norm',
+                                 'ffn', 'norm')))),)

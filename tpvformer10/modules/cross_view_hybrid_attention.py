@@ -14,10 +14,10 @@ ext_module = ext_loader.load_ext(
 
 
 @ATTENTION.register_module()
-class TPVTemporalSelfAttention(BaseModule):
+class TPVCrossViewHybridAttention(BaseModule):
     
     def __init__(self, 
-        bev_h, bev_w, bev_z,
+        tpv_h, tpv_w, tpv_z,
         embed_dims=256, 
         num_heads=8, 
         num_points=4,
@@ -49,7 +49,7 @@ class TPVTemporalSelfAttention(BaseModule):
             nn.Linear(embed_dims, embed_dims) for _ in range(3)
         ])
 
-        self.bev_h, self.bev_w, self.bev_z = bev_h, bev_w, bev_z
+        self.tpv_h, self.tpv_w, self.tpv_z = tpv_h, tpv_w, tpv_z
         self.init_weight()
 
     def init_weight(self):
@@ -160,8 +160,8 @@ class TPVTemporalSelfAttention(BaseModule):
 
         if reference_points.shape[-1] == 2:
             """
-            For each BEV query, it owns `num_Z_anchors` in 3D space that having different heights.
-            After proejcting, each BEV query has `num_Z_anchors` reference points in each 2D image.
+            For each tpv query, it owns `num_Z_anchors` in 3D space that having different heights.
+            After proejcting, each tpv query has `num_Z_anchors` reference points in each 2D image.
             For each referent point, we sample `num_points` sampling points.
             For `num_Z_anchors` reference points,  it has overall `num_points * num_Z_anchors` sampling points.
             """

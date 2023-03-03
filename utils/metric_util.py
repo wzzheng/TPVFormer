@@ -1,6 +1,6 @@
 
 import numpy as np
-from mmdet3d.utils import get_root_logger
+from mmseg.utils import get_root_logger
 import torch
 import torch.distributed as dist
 
@@ -51,7 +51,7 @@ class MeanIoU:
                 ious.append(cur_iou.item())
 
         miou = np.mean(ious)
-        logger = get_root_logger(name='mmseg')
+        logger = get_root_logger()
         logger.info(f'Validation per class iou {self.name}:')
         for iou, label_str in zip(ious, self.label_str):
             logger.info('%s : %.2f%%' % (label_str, iou * 100))

@@ -1,8 +1,8 @@
 
 from mmcv.runner import force_fp32, auto_fp16, BaseModule
 from mmseg.models import SEGMENTORS, builder
-from .grid_mask import GridMask
 import warnings
+from dataloader.grid_mask import GridMask
 
 
 @SEGMENTORS.register_module()
@@ -12,22 +12,22 @@ class TPVFormer(BaseModule):
                  use_grid_mask=False,
                  img_backbone=None,
                  img_neck=None,
-                 pts_bbox_head=None,
+                 tpv_head=None,
                  pretrained=None,
-                 fusion_head=None,
+                 tpv_aggregator=None,
                  **kwargs,
                  ):
 
         super().__init__()
 
-        if pts_bbox_head:
-            self.pts_bbox_head = builder.build_head(pts_bbox_head)
+        if tpv_head:
+            self.tpv_head = builder.build_head(tpv_head)
         if img_backbone:
             self.img_backbone = builder.build_backbone(img_backbone)
         if img_neck:
             self.img_neck = builder.build_neck(img_neck)
-        if fusion_head:
-            self.fusion_head = builder.build_head(fusion_head)
+        if tpv_aggregator:
+            self.tpv_aggregator = builder.build_head(tpv_aggregator)
 
         if pretrained is None:
             img_pretrained = None
@@ -55,11 +55,8 @@ class TPVFormer(BaseModule):
         B = img.size(0)
         if img is not None:
 
-            if img.dim() == 5 and img.size(0) == 1:
-                img.squeeze_()
-            elif img.dim() == 5 and img.size(0) > 1:
-                B, N, C, H, W = img.size()
-                img = img.reshape(B * N, C, H, W)
+            B, N, C, H, W = img.size()
+            img = img.reshape(B * N, C, H, W)
             if use_grid_mask is None:
                 use_grid_mask = self.use_grid_mask
             if use_grid_mask:
@@ -89,6 +86,6 @@ class TPVFormer(BaseModule):
         """Forward training function.
         """
         img_feats = self.extract_img_feat(img=img, use_grid_mask=use_grid_mask)
-        outs = self.pts_bbox_head(img_feats, img_metas)
-        outs = self.fusion_head(outs, points)
+        outs = self.tpv_head(img_feats, img_metas)
+        outs = self.tpv_aggregator(outs, points)
         return outs

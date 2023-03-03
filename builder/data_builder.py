@@ -1,13 +1,13 @@
 import torch
-from dataloader.dataset import SemKITTI_nusc
-from dataloader.dataset_wrapper import custom_collate_fn, tpvformer_dataset_nuscenes
+from dataloader.dataset import ImagePoint_NuScenes
+from dataloader.dataset_wrapper import custom_collate_fn, DatasetWrapper_NuScenes
 from nuscenes import NuScenes
 
 
 def build(dataset_config,
           train_dataloader_config,
           val_dataloader_config,
-          grid_size=[480, 360, 32],
+          grid_size=[200, 200, 16],
           version='v1.0-trainval',
           dist=False,
           scale_rate=1,
@@ -18,36 +18,36 @@ def build(dataset_config,
     label_mapping = dataset_config["label_mapping"]
 
     nusc = NuScenes(version=version, dataroot=data_path, verbose=True)
-    train_pt_dataset = SemKITTI_nusc(data_path, imageset=train_imageset,
+    train_dataset = ImagePoint_NuScenes(data_path, imageset=train_imageset,
                                      label_mapping=label_mapping, nusc=nusc)
-    val_pt_dataset = SemKITTI_nusc(data_path, imageset=val_imageset,
+    val_dataset = ImagePoint_NuScenes(data_path, imageset=val_imageset,
                                    label_mapping=label_mapping, nusc=nusc)
 
-    train_dataset = tpvformer_dataset_nuscenes(
-        train_pt_dataset,
+    train_dataset = DatasetWrapper_NuScenes(
+        train_dataset,
         grid_size=grid_size,
         fixed_volume_space=dataset_config['fixed_volume_space'],
         max_volume_space=dataset_config['max_volume_space'],
         min_volume_space=dataset_config['min_volume_space'],
-        ignore_label=dataset_config["fill_label"],
+        fill_label=dataset_config["fill_label"],
         phase='train',
         scale_rate=scale_rate,
     )
 
-    val_dataset = tpvformer_dataset_nuscenes(
-        val_pt_dataset,
+    val_dataset = DatasetWrapper_NuScenes(
+        val_dataset,
         grid_size=grid_size,
         fixed_volume_space=dataset_config['fixed_volume_space'],
         max_volume_space=dataset_config['max_volume_space'],
         min_volume_space=dataset_config['min_volume_space'],
-        ignore_label=dataset_config["fill_label"],
+        fill_label=dataset_config["fill_label"],
         phase='val',
         scale_rate=scale_rate,
     )
 
     if dist:
-        sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-        val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False, drop_last=True)
+        sampler = torch.utils.data.distributed.DistributedSampler(train_dataset, drop_last=True)
+        val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False, drop_last=False)
     else:
         sampler = None
         val_sampler = None

@@ -5,7 +5,7 @@ import yaml
 import pickle
 from mmcv.image.io import imread
 
-class SemKITTI_nusc(data.Dataset):
+class ImagePoint_NuScenes(data.Dataset):
     def __init__(self, data_path, imageset='train', label_mapping="nuscenes.yaml", nusc=None):
         with open(imageset, 'rb') as f:
             data = pickle.load(f)
@@ -46,7 +46,6 @@ class SemKITTI_nusc(data.Dataset):
         data_tuple = (imgs, img_metas, points[:, :3], points_label.astype(np.uint8))
         return data_tuple
     
-
     def get_data_info(self, info):
         """Get data info according to the given index.
 
@@ -60,7 +59,6 @@ class SemKITTI_nusc(data.Dataset):
                 - sample_idx (str): Sample index.
                 - pts_filename (str): Filename of point clouds.
                 - sweeps (list[dict]): Infos of sweeps.
-                - timestamp (float): Sample timestamp.
                 - img_filename (str, optional): Image filename.
                 - lidar2img (list[np.ndarray], optional): Transformations \
                     from lidar to different cameras.
@@ -82,8 +80,7 @@ class SemKITTI_nusc(data.Dataset):
             image_paths.append(cam_info['data_path'])
             # obtain lidar to image transformation matrix
             lidar2cam_r = np.linalg.inv(cam_info['sensor2lidar_rotation'])
-            lidar2cam_t = cam_info[
-                'sensor2lidar_translation'] @ lidar2cam_r.T
+            lidar2cam_t = cam_info['sensor2lidar_translation'] @ lidar2cam_r.T
             lidar2cam_rt = np.eye(4)
             lidar2cam_rt[:3, :3] = lidar2cam_r.T
             lidar2cam_rt[3, :3] = -lidar2cam_t

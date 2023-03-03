@@ -10,26 +10,15 @@ from dataloader.transform_3d import PadMultiViewImage, NormalizeMultiviewImage, 
 img_norm_cfg = dict(
     mean=[103.530, 116.280, 123.675], std=[1.0, 1.0, 1.0], to_rgb=False)
 
-train_pipeline = [
-    dict(type='PhotoMetricDistortionMultiViewImage'),
-    dict(type='NormalizeMultiviewImage', **img_norm_cfg),
-    dict(type='PadMultiViewImage', size_divisor=32),
-]
 
-test_pipeline = [
-    dict(type='NormalizeMultiviewImage', **img_norm_cfg),
-    dict(type='PadMultiViewImage', size_divisor=32),
-]
-
-
-class tpvformer_dataset_nuscenes(data.Dataset):
-    def __init__(self, in_dataset, grid_size, ignore_label=0,
-                 fixed_volume_space=False, max_volume_space=[50, np.pi, 3], 
-                 min_volume_space=[0, -np.pi, -5], phase='train', scale_rate=1):
+class DatasetWrapper_NuScenes(data.Dataset):
+    def __init__(self, in_dataset, grid_size, fill_label=0,
+                 fixed_volume_space=False, max_volume_space=[51.2, 51.2, 3], 
+                 min_volume_space=[-51.2, -51.2, -5], phase='train', scale_rate=1):
         'Initialization'
-        self.point_cloud_dataset = in_dataset
+        self.imagepoint_dataset = in_dataset
         self.grid_size = np.asarray(grid_size)
-        self.ignore_label = ignore_label
+        self.fill_label = fill_label
         self.fixed_volume_space = fixed_volume_space
         self.max_volume_space = max_volume_space
         self.min_volume_space = min_volume_space
@@ -62,12 +51,11 @@ class tpvformer_dataset_nuscenes(data.Dataset):
                 ]
         self.transforms = transforms
 
-
     def __len__(self):
-        return len(self.point_cloud_dataset)
+        return len(self.imagepoint_dataset)
 
     def __getitem__(self, index):
-        data = self.point_cloud_dataset[index]
+        data = self.imagepoint_dataset[index]
         imgs, img_metas, xyz, labels = data
 
         # deal with img augmentations
@@ -80,21 +68,24 @@ class tpvformer_dataset_nuscenes(data.Dataset):
         img_metas['img_shape'] = imgs_dict['img_shape']
         img_metas['lidar2img'] = imgs_dict['lidar2img']
 
-        xyz_pol = xyz        
         assert self.fixed_volume_space
         max_bound = np.asarray(self.max_volume_space)  # 51.2 51.2 3
         min_bound = np.asarray(self.min_volume_space)  # -51.2 -51.2 -5
         # get grid index
         crop_range = max_bound - min_bound
         cur_grid_size = self.grid_size                 # 200, 200, 16
-        intervals = crop_range / (cur_grid_size - 1)
+        # TODO: intervals should not minus one.
+        intervals = crop_range / (cur_grid_size - 1)   
 
         if (intervals == 0).any(): 
             print("Zero interval!")
-        grid_ind = (np.floor((np.clip(xyz_pol, min_bound, max_bound) - min_bound) / intervals)).astype(np.int)
+        # TODO: grid_ind_float should actually be returned.
+        # grid_ind_float = (np.clip(xyz, min_bound, max_bound - 1e-3) - min_bound) / intervals
+        grid_ind_float = (np.clip(xyz, min_bound, max_bound) - min_bound) / intervals
+        grid_ind = np.floor(grid_ind_float).astype(np.int)
 
         # process labels
-        processed_label = np.ones(self.grid_size, dtype=np.uint8) * self.ignore_label
+        processed_label = np.ones(self.grid_size, dtype=np.uint8) * self.fill_label
         label_voxel_pair = np.concatenate([grid_ind, labels], axis=1)
         label_voxel_pair = label_voxel_pair[np.lexsort((grid_ind[:, 0], grid_ind[:, 1], grid_ind[:, 2])), :]
         processed_label = nb_process_label(np.copy(processed_label), label_voxel_pair)
@@ -126,7 +117,8 @@ def custom_collate_fn(data):
     img2stack = np.stack([d[0] for d in data]).astype(np.float32)
     meta2stack = [d[1] for d in data]
     label2stack = np.stack([d[2] for d in data]).astype(np.int)
-    grid_ind_stack = np.stack([d[3] for d in data]).astype(np.int)
+    # because we use a batch size of 1, so we can stack these tensor together.
+    grid_ind_stack = np.stack([d[3] for d in data]).astype(np.float)
     point_label = np.stack([d[4] for d in data]).astype(np.int)
     return torch.from_numpy(img2stack), \
         meta2stack, \

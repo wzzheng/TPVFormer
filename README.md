@@ -1,6 +1,4 @@
 # TPVFormer: An academic alternative to Tesla's Occupancy Network
-Under construction. 
-
 ### [Paper](https://arxiv.org/pdf/2302.07817) | [Project Page](https://wzzheng.net/TPVFormer/) | [Leaderboard](https://www.nuscenes.org/lidar-segmentation?externalData=all&mapData=all&modalities=Camera)
 
 > Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction, CVPR 2023
@@ -43,12 +41,12 @@ Modern methods for vision-centric autonomous driving perception widely adopt the
 1. Download pretrain weights from https://github.com/zhiqi-li/storage/releases/download/v1.0/r101_dcn_fcos3d_pretrain.pth and put it in ckpts/
 
 2. Create soft link from data/nuscenes to your_nuscenes_path
-    
+   
 3. Download our generated train/val pickle files and put them in data/
-  nuscenes_infos_train.pkl
-  https://cloud.tsinghua.edu.cn/f/ede3023e01874b26bead/?dl=1
-  nuscenes_infos_val.pkl
-  https://cloud.tsinghua.edu.cn/f/61d839064a334630ac55/?dl=1
+    nuscenes_infos_train.pkl
+    https://cloud.tsinghua.edu.cn/f/ede3023e01874b26bead/?dl=1
+    nuscenes_infos_val.pkl
+    https://cloud.tsinghua.edu.cn/f/61d839064a334630ac55/?dl=1
 
   
 
@@ -67,6 +65,8 @@ TPVFormer/data
 ```
 
 ## Getting Started
+### Training
+
 1. Train TPVFormer for lidar segmentation task on A100 with 40G GPU memory.
 ```
 bash launcher.sh config/tpv_lidarseg.py out/tpv_lidarseg 
@@ -74,13 +74,27 @@ bash launcher.sh config/tpv_lidarseg.py out/tpv_lidarseg
 
 2. Train TPVFormer for lidar segmentation task on 3090 with 24G GPU memory.
 ```
-bash launcher.sh config/tpv_lidarseg_dim96.py out/tpv_lidarseg_dim96
+bash launcher.sh config/tpv_lidarseg_dim64.py out/tpv_lidarseg_dim64
 ```
 
 3. Train TPVFormer for 3D semantic occupancy prediction task on 3090 with 24G GPU memory. 
 ```
-bash launcher.sh config/tpv04_occupancy.py out/tpv_occupancy --lovasz-input voxel
+bash launcher.sh config/tpv04_occupancy.py out/tpv_occupancy
 ```
+
+### Evaluation for LiDAR Segmentation Metric
+
+1. We release the weights for 3D semantic occupancy prediction at https://cloud.tsinghua.edu.cn/f/3fbd12101ead4397a0f7/?dl=1, and the weights for LiDAR segmentation at https://cloud.tsinghua.edu.cn/f/f686e97feb18406592d9/?dl=1.
+
+2. Run eval.py to calculate mIoU for lidarseg.
+
+```
+python eval.py --py-config xxxx --ckpt-path xxxx
+```
+
+### Visualizations
+
+Read visualization/readme.md for detailed instructions.
 
 ## Comparisons with Tesla's Occupancy Network
 

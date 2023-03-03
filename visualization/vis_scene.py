@@ -1,5 +1,5 @@
 
-import pickle, argparse, torch, logging, os, json
+import argparse, torch, os, json
 import shutil
 import numpy as np
 import mmcv
@@ -48,16 +48,11 @@ def get_grid_coords(dims, resolution):
 
 
 def draw(
-    voxels,          # 预测的voxel类别
-    T_velo_2_cam,
+    voxels,          # semantic occupancy predictions
     vox_origin,
-    fov_mask,
-    img_size,
-    f,
-    voxel_size=0.2,  # voxel在真实世界的大小
-    d=7,
-    grid=None,       # 点云的voxel坐标
-    pt_label=None,   # 点云的标签
+    voxel_size=0.2,  # voxel size in the real world
+    grid=None,       # voxel coordinates of point cloud
+    pt_label=None,   # label of point cloud
     save_dirs=None,
     cam_positions=None,
     focal_positions=None,
@@ -73,40 +68,30 @@ def draw(
     grid_coords = np.vstack([grid_coords.T, voxels.reshape(-1)]).T
     grid_coords[grid_coords[:, 3] == 17, 3] = 20
     
-    car_vox_range = np.array([
-        [w//2 - 2 - 4, w//2 - 2 + 4],
-        [h//2 - 2 - 4, h//2 - 2 + 4],
-        [z//2 - 2 - 3, z//2 - 2 + 3]
-    ], dtype=np.int)
-    car_x = np.arange(car_vox_range[0, 0], car_vox_range[0, 1])
-    car_y = np.arange(car_vox_range[1, 0], car_vox_range[1, 1])
-    car_z = np.arange(car_vox_range[2, 0], car_vox_range[2, 1])
-    car_xx, car_yy, car_zz = np.meshgrid(car_x, car_y, car_z)
-    car_label = np.zeros([8, 8, 6], dtype=np.int)
-    car_label[:3, :, :2] = 17
-    car_label[3:6, :, :2] = 18
-    car_label[6:, :, :2] = 19
-    car_label[:3, :, 2:4] = 18
-    car_label[3:6, :, 2:4] = 19
-    car_label[6:, :, 2:4] = 17
-    car_label[:3, :, 4:] = 19
-    car_label[3:6, :, 4:] = 17
-    car_label[6:, :, 4:] = 18
-    car_grid = np.array([car_xx.flatten(), car_yy.flatten(), car_zz.flatten()]).T
-    car_indexes = car_grid[:, 0] * h * z + car_grid[:, 1] * z + car_grid[:, 2]
-    grid_coords[car_indexes, 3] = car_label.flatten()
-        
-    # point pred visualize
-    # indexes = grid[:, 0] * h * z + grid[:, 1] * z + grid[:, 2]
-    # indexes = np.unique(indexes)
-    # grid_coords = grid_coords[indexes]
+    # draw a simple car at the middle
 
-    # point gt visualize
-    # indexes = grid[:, 0] * h * z + grid[:, 1] * z + grid[:, 2]
-    # indexes, pt_label_index = np.unique(indexes, return_index=True)
-    # gt_label = pt_label[pt_label_index]
-    # grid_coords = grid_coords[indexes]
-    # grid_coords = np.vstack([grid_coords.T, gt_label.reshape(-1)]).T
+    # car_vox_range = np.array([
+    #     [w//2 - 2 - 4, w//2 - 2 + 4],
+    #     [h//2 - 2 - 4, h//2 - 2 + 4],
+    #     [z//2 - 2 - 3, z//2 - 2 + 3]
+    # ], dtype=np.int)
+    # car_x = np.arange(car_vox_range[0, 0], car_vox_range[0, 1])
+    # car_y = np.arange(car_vox_range[1, 0], car_vox_range[1, 1])
+    # car_z = np.arange(car_vox_range[2, 0], car_vox_range[2, 1])
+    # car_xx, car_yy, car_zz = np.meshgrid(car_x, car_y, car_z)
+    # car_label = np.zeros([8, 8, 6], dtype=np.int)
+    # car_label[:3, :, :2] = 17
+    # car_label[3:6, :, :2] = 18
+    # car_label[6:, :, :2] = 19
+    # car_label[:3, :, 2:4] = 18
+    # car_label[3:6, :, 2:4] = 19
+    # car_label[6:, :, 2:4] = 17
+    # car_label[:3, :, 4:] = 19
+    # car_label[3:6, :, 4:] = 17
+    # car_label[6:, :, 4:] = 18
+    # car_grid = np.array([car_xx.flatten(), car_yy.flatten(), car_zz.flatten()]).T
+    # car_indexes = car_grid[:, 0] * h * z + car_grid[:, 1] * z + car_grid[:, 2]
+    # grid_coords[car_indexes, 3] = car_label.flatten()
 
     # Get the voxels inside FOV
     fov_grid_coords = grid_coords
@@ -126,7 +111,7 @@ def draw(
         fov_voxels[:, 2],
         fov_voxels[:, 3],
         colormap="viridis",
-        scale_factor=voxel_size - 0.05 * voxel_size,
+        scale_factor=0.95 * voxel_size,
         mode="cube",
         opacity=1.0,
         vmin=1,
@@ -153,8 +138,8 @@ def draw(
             [230, 230, 250, 255],       # manmade              white
             [  0, 175,   0, 255],       # vegetation           green
             [  0, 255, 127, 255],       # ego car              dark cyan
-            [255,  99,  71, 255],
-            [  0, 191, 255, 255]
+            [255,  99,  71, 255],       # ego car
+            [  0, 191, 255, 255]        # ego car
         ]
     ).astype(np.uint8)
     
@@ -163,80 +148,53 @@ def draw(
 
     scene = figure.scene
 
-    if not mlab.options.offscreen:
-        # scene.camera.position = [-4.69302904, -52.74874688, 19.16181492]
-        # scene.camera.focal_point = [-4.52985313, -51.8233303, 18.81979477]
-        # scene.camera.view_angle = 40.0
-        # scene.camera.view_up = [0.0, 0.0, 1.0]
-        # scene.camera.clipping_range = [0.01, 300.]
-        # scene.camera.compute_view_plane_normal()
-        # scene.render()
+    for i, save_dir in enumerate(save_dirs):
+        if i < 6:
+            scene.camera.position = cam_positions[i] - np.array([0.7, 1.3, 0.])
+            scene.camera.focal_point = focal_positions[i] - np.array([0.7, 1.3, 0.])
+            scene.camera.view_angle = 35 if i != 3 else 60
+            scene.camera.view_up = [0.0, 0.0, 1.0]
+            scene.camera.clipping_range = [0.01, 300.]
+            scene.camera.compute_view_plane_normal()
+            scene.render()
+        elif i == 6:
+            # scene.camera.position = [-4.69302904, -52.74874688, 19.16181492]
+            # scene.camera.focal_point = [-4.52985313, -51.8233303, 18.81979477]
+            # scene.camera.view_angle = 40.0
+            # scene.camera.view_up = [0.0, 0.0, 1.0]
+            # scene.camera.clipping_range = [0.01, 300.]
+            # scene.camera.compute_view_plane_normal()
+            # scene.render()
+            scene.camera.position = [  0.75131739, -35.08337438,  16.71378558]
+            scene.camera.focal_point = [  0.75131739, -34.21734897,  16.21378558]
+            scene.camera.view_angle = 40.0
+            scene.camera.view_up = [0.0, 0.0, 1.0]
+            scene.camera.clipping_range = [0.01, 300.]
+            scene.camera.compute_view_plane_normal()
+            scene.render()
 
-        scene.camera.position = [  0.75131739, -35.08337438,  16.71378558]
-        scene.camera.focal_point = [  0.75131739, -34.21734897,  16.21378558]
-        scene.camera.view_angle = 40.0
-        scene.camera.view_up = [0.0, 0.0, 1.0]
-        scene.camera.clipping_range = [0.01, 300.]
-        scene.camera.compute_view_plane_normal()
-        scene.render()
+        else:
+            # scene.camera.position = [91.84365261779985, 87.2356528161641, 86.90232146965226]
+            # scene.camera.focal_point = [4.607997894287109, -1.9073486328125e-06, -0.33333325386047363]
+            # scene.camera.view_angle = 30.0
+            # scene.camera.view_up = [0.0, 0.0, 1.0]
+            # scene.camera.clipping_range = [33.458354318473965, 299.5433372220855]
+            # scene.camera.compute_view_plane_normal()
+            # scene.render()
+            scene.camera.position = [ 0.75131739,  0.78265103, 93.21378558]
+            scene.camera.focal_point = [ 0.75131739,  0.78265103, 92.21378558]
+            scene.camera.view_angle = 40.0
+            scene.camera.view_up = [0., 1., 0.]
+            scene.camera.clipping_range = [0.01, 400.]
+            scene.camera.compute_view_plane_normal()
+            scene.render()
 
-        # i=0
-        # scene.camera.position = cam_positions[i] - np.array([0.7, 1.3, 0.])
-        # scene.camera.focal_point = focal_positions[i] - np.array([0.7, 1.3, 0.])
-        # scene.camera.view_angle = 35 if i != 3 else 60
-        # scene.camera.view_up = [0.0, 0.0, 1.0]
-        # scene.camera.clipping_range = [0.01, 300.]
-        # scene.camera.compute_view_plane_normal()
-        # scene.render()
-
-        mlab.show()
-    else:
-        for i, save_dir in enumerate(save_dirs):
-            if i < 6:
-                scene.camera.position = cam_positions[i] - np.array([0.7, 1.3, 0.])
-                scene.camera.focal_point = focal_positions[i] - np.array([0.7, 1.3, 0.])
-                scene.camera.view_angle = 35 if i != 3 else 60
-                scene.camera.view_up = [0.0, 0.0, 1.0]
-                scene.camera.clipping_range = [0.01, 300.]
-                scene.camera.compute_view_plane_normal()
-                scene.render()
-            elif i == 6:
-                # scene.camera.position = [-4.69302904, -52.74874688, 19.16181492]
-                # scene.camera.focal_point = [-4.52985313, -51.8233303, 18.81979477]
-                # scene.camera.view_angle = 40.0
-                # scene.camera.view_up = [0.0, 0.0, 1.0]
-                # scene.camera.clipping_range = [0.01, 300.]
-                # scene.camera.compute_view_plane_normal()
-                # scene.render()
-                scene.camera.position = [  0.75131739, -35.08337438,  16.71378558]
-                scene.camera.focal_point = [  0.75131739, -34.21734897,  16.21378558]
-                scene.camera.view_angle = 40.0
-                scene.camera.view_up = [0.0, 0.0, 1.0]
-                scene.camera.clipping_range = [0.01, 300.]
-                scene.camera.compute_view_plane_normal()
-                scene.render()
-
-            else:
-                # scene.camera.position = [91.84365261779985, 87.2356528161641, 86.90232146965226]
-                # scene.camera.focal_point = [4.607997894287109, -1.9073486328125e-06, -0.33333325386047363]
-                # scene.camera.view_angle = 30.0
-                # scene.camera.view_up = [0.0, 0.0, 1.0]
-                # scene.camera.clipping_range = [33.458354318473965, 299.5433372220855]
-                # scene.camera.compute_view_plane_normal()
-                # scene.render()
-                scene.camera.position = [ 0.75131739,  0.78265103, 93.21378558]
-                scene.camera.focal_point = [ 0.75131739,  0.78265103, 92.21378558]
-                scene.camera.view_angle = 40.0
-                scene.camera.view_up = [0., 1., 0.]
-                scene.camera.clipping_range = [0.01, 400.]
-                scene.camera.compute_view_plane_normal()
-                scene.render()
-
-            mlab.savefig(os.path.join(save_dir, f'vis_{timestamp}.png'))
-        mlab.close()
+        mlab.savefig(os.path.join(save_dir, f'vis_{timestamp}.png'))
+    mlab.close()
 
 
 if __name__ == "__main__":
+    import sys; sys.path.insert(0, os.path.abspath('.'))
 
     device = torch.device('cuda:0')
     # device = torch.device('cpu')
@@ -255,8 +213,6 @@ if __name__ == "__main__":
 
     cfg = Config.fromfile(args.py_config)
     dataset_config = cfg.dataset_params
-    train_dataloader_config = cfg.train_data_loader
-    val_dataloader_config = cfg.val_data_loader
 
     # prepare model
     logger = mmcv.utils.get_logger('mmcv')
@@ -275,17 +231,15 @@ if __name__ == "__main__":
 
     # prepare data
     from nuscenes import NuScenes
-    from visualize.dataset import SemKITTI_nusc_scene, tpvformer_dataset_nuscenes_scene
+    from visualization.dataset import ImagePoint_NuScenes_vis, DatasetWrapper_NuScenes_vis
 
     if args.vis_train:
         pkl_path = 'data/nuscenes_infos_train_scene.pkl'
     else:
         pkl_path = 'data/nuscenes_infos_val_scene.pkl'
     
-    loader_configs = train_dataloader_config if args.vis_train else val_dataloader_config
-    dataset_configs = dataset_config
     data_path = 'data/nuscenes'
-    label_mapping = dataset_configs['label_mapping']
+    label_mapping = dataset_config['label_mapping']
 
     nusc = NuScenes(version='v1.0-trainval', dataroot=data_path, verbose=True)
     
@@ -297,24 +251,26 @@ if __name__ == "__main__":
         scene_idxs = [args.scene_idx] if not isinstance(args.scene_idx, list) else args.scene_idx
         num_scenes = len(scene_idxs)
         scene_names = [None] * num_scenes
+    
+    # render scenes one by one
     for idx in range(num_scenes):
-        pt_dataset = SemKITTI_nusc_scene(
+        pt_dataset = ImagePoint_NuScenes_vis(
             data_path, imageset=pkl_path, scene_idx=scene_idxs[idx], scene_name=scene_names[idx],
             label_mapping=label_mapping, nusc=nusc)
 
-        dataset = tpvformer_dataset_nuscenes_scene(
+        dataset = DatasetWrapper_NuScenes_vis(
             pt_dataset,
             grid_size=cfg.grid_size,
-            fixed_volume_space=dataset_configs['fixed_volume_space'],
-            max_volume_space=dataset_configs['max_volume_space'],
-            min_volume_space=dataset_configs['min_volume_space'],
-            ignore_label=dataset_configs["fill_label"],
+            fixed_volume_space=dataset_config['fixed_volume_space'],
+            max_volume_space=dataset_config['max_volume_space'],
+            min_volume_space=dataset_config['min_volume_space'],
+            ignore_label=dataset_config["fill_label"],
             phase='val'
         )
         print(len(dataset))
 
         for index in range(len(dataset)):
-            print(f'processing index {index}')
+            print(f'processing frame {index} of scene {idx}')
             batch_data, filelist, scene_meta, timestamp = dataset[index]
             imgs, img_metas, vox_label, grid, pt_label = batch_data
             imgs = torch.from_numpy(np.stack([imgs]).astype(np.float32)).to(device)
@@ -325,8 +281,8 @@ if __name__ == "__main__":
                 predict_vox = torch.argmax(outputs_vox, dim=1) # bs, w, h, z
                 predict_vox = predict_vox.squeeze(0).cpu().numpy() # w, h, z
 
-            voxel_origin = dataset_configs['min_volume_space']
-            voxel_max = dataset_configs['max_volume_space']
+            voxel_origin = dataset_config['min_volume_space']
+            voxel_max = dataset_config['max_volume_space']
             grid_size = cfg.grid_size
             resolution = [(e - s) / l for e, s, l in zip(voxel_max, voxel_origin, grid_size)]
 
@@ -348,15 +304,11 @@ if __name__ == "__main__":
                     shutil.copy(filename, os.path.join(clip_dir, 'img_'+str(timestamp)+'.jpg'))
 
             draw(predict_vox, 
-                None, 
-                voxel_origin, 
-                None, None, None, 
-                resolution, 
-                None, 
-                grid.squeeze(0).cpu().numpy(), 
-                pt_label.squeeze(-1),
-                clip_dirs,
-                img_metas['cam_positions'],
-                img_metas['focal_positions'],
-                timestamp=timestamp,
-            )
+                 voxel_origin, 
+                 resolution, 
+                 grid.squeeze(0).cpu().numpy(), 
+                 pt_label.squeeze(-1),
+                 clip_dirs,
+                 img_metas['cam_positions'],
+                 img_metas['focal_positions'],
+                 timestamp=timestamp,)

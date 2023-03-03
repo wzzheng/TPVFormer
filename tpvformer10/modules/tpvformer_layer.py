@@ -1,41 +1,17 @@
-# ---------------------------------------------
-# Copyright (c) OpenMMLab. All rights reserved.
-# ---------------------------------------------
-#  Modified by Zhiqi Li
-# ---------------------------------------------
 
 import copy
 import warnings
 
 import torch
-import torch.nn as nn
-
-from mmcv import ConfigDict, deprecated_api_warning
-from mmcv.cnn import Linear, build_activation_layer, build_norm_layer
-from mmcv.runner.base_module import BaseModule, ModuleList, Sequential
-
-from mmcv.cnn.bricks.registry import (ATTENTION, FEEDFORWARD_NETWORK, POSITIONAL_ENCODING,
-                                      TRANSFORMER_LAYER, TRANSFORMER_LAYER_SEQUENCE)
-
-# Avoid BC-breaking of importing MultiScaleDeformableAttention from this file
-try:
-    from mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention  # noqa F401
-    warnings.warn(
-        ImportWarning(
-            '``MultiScaleDeformableAttention`` has been moved to '
-            '``mmcv.ops.multi_scale_deform_attn``, please change original path '  # noqa E501
-            '``from mmcv.cnn.bricks.transformer import MultiScaleDeformableAttention`` '  # noqa E501
-            'to ``from mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention`` '  # noqa E501
-        ))
-except ImportError:
-    warnings.warn('Fail to import ``MultiScaleDeformableAttention`` from '
-                  '``mmcv.ops.multi_scale_deform_attn``, '
-                  'You should install ``mmcv-full`` if you need this module. ')
+from mmcv import ConfigDict
+from mmcv.cnn import build_norm_layer
+from mmcv.runner.base_module import BaseModule, ModuleList
+from mmcv.cnn.bricks.registry import TRANSFORMER_LAYER
 from mmcv.cnn.bricks.transformer import build_feedforward_network, build_attention
 
 
 @TRANSFORMER_LAYER.register_module()
-class TPVMyCustomBaseTransformerLayer(BaseModule):
+class TPVFormerLayer(BaseModule):
     """Base `TransformerLayer` for vision transformer.
     It can be built from `mmcv.ConfigDict` and support more flexible
     customization, for example, using any number of `FFN or LN ` and
@@ -73,7 +49,6 @@ class TPVMyCustomBaseTransformerLayer(BaseModule):
                  attn_cfgs=None,
                  ffn_cfgs=dict(
                      type='FFN',
-                    #  embed_dims=256,
                      feedforward_channels=1024,
                      num_fcs=2,
                      ffn_drop=0.,
@@ -101,13 +76,6 @@ class TPVMyCustomBaseTransformerLayer(BaseModule):
         super().__init__(init_cfg)
 
         self.batch_first = batch_first
-
-        # assert set(operation_order) & set(
-        #     ['self_attn', 'norm', 'ffn', 'cross_attn']) == \
-        #     set(operation_order), f'The operation_order of' \
-        #     f' {self.__class__.__name__} should ' \
-        #     f'contains all four operation type ' \
-        #     f"{['self_attn', 'norm', 'ffn', 'cross_attn']}"
 
         num_attn = operation_order.count('self_attn') + operation_order.count(
             'cross_attn')
@@ -154,8 +122,7 @@ class TPVMyCustomBaseTransformerLayer(BaseModule):
             else:
                 assert ffn_cfgs[ffn_index]['embed_dims'] == self.embed_dims
 
-            self.ffns.append(
-                build_feedforward_network(ffn_cfgs[ffn_index]))
+            self.ffns.append(build_feedforward_network(ffn_cfgs[ffn_index]))
 
         self.norms = ModuleList()
         num_norms = operation_order.count('norm')
@@ -166,14 +133,19 @@ class TPVMyCustomBaseTransformerLayer(BaseModule):
                 query,
                 key=None,
                 value=None,
-                query_pos=None,
-                key_pos=None,
-                attn_masks=None,
-                query_key_padding_mask=None,
-                key_padding_mask=None,
+                tpv_pos=None,
+                ref_2d=None,
+                tpv_h=None,
+                tpv_w=None,
+                tpv_z=None,
+                spatial_shapes=None,
+                level_start_index=None,
+                reference_points_cams=None,
+                tpv_masks=None,
                 **kwargs):
-        """Forward function for `TransformerDecoderLayer`.
+        """
         **kwargs contains some specific arguments of attentions.
+
         Args:
             query (Tensor): The input query with shape
                 [num_queries, bs, embed_dims] if
@@ -183,19 +155,6 @@ class TPVMyCustomBaseTransformerLayer(BaseModule):
                 embed_dims] if self.batch_first is False, else
                 [bs, num_keys, embed_dims] .
             value (Tensor): The value tensor with same shape as `key`.
-            query_pos (Tensor): The positional encoding for `query`.
-                Default: None.
-            key_pos (Tensor): The positional encoding for `key`.
-                Default: None.
-            attn_masks (List[Tensor] | None): 2D Tensor used in
-                calculation of corresponding attention. The length of
-                it should equal to the number of `attention` in
-                `operation_order`. Default: None.
-            query_key_padding_mask (Tensor): ByteTensor for `query`, with
-                shape [bs, num_queries]. Only used in `self_attn` layer.
-                Defaults to None.
-            key_padding_mask (Tensor): ByteTensor for `query`, with
-                shape [bs, num_keys]. Default: None.
         Returns:
             Tensor: forwarded results with shape [num_queries, bs, embed_dims].
         """
@@ -203,58 +162,60 @@ class TPVMyCustomBaseTransformerLayer(BaseModule):
         norm_index = 0
         attn_index = 0
         ffn_index = 0
+        if self.operation_order[0] == 'cross_attn':
+            query = torch.cat(query, dim=1)
         identity = query
-        if attn_masks is None:
-            attn_masks = [None for _ in range(self.num_attn)]
-        elif isinstance(attn_masks, torch.Tensor):
-            attn_masks = [
-                copy.deepcopy(attn_masks) for _ in range(self.num_attn)
-            ]
-            warnings.warn(f'Use same attn_mask in all attentions in '
-                          f'{self.__class__.__name__} ')
-        else:
-            assert len(attn_masks) == self.num_attn, f'The length of ' \
-                f'attn_masks {len(attn_masks)} must be equal ' \
-                f'to the number of attention in ' \
-                f'operation_order {self.num_attn}'
 
         for layer in self.operation_order:
+            # cross view hybrid attention
             if layer == 'self_attn':
-                temp_key = temp_value = query
+                ss = torch.tensor([
+                    [tpv_h, tpv_w],
+                    [tpv_z, tpv_h],
+                    [tpv_w, tpv_z]
+                ], device=query[0].device)
+                lsi = torch.tensor([
+                    0, tpv_h*tpv_w, tpv_h*tpv_w+tpv_z*tpv_h
+                ], device=query[0].device)
+
+                if not isinstance(query, (list, tuple)):
+                    query = torch.split(
+                        query, [tpv_h*tpv_w, tpv_z*tpv_h, tpv_w*tpv_z], dim=1)
+
                 query = self.attentions[attn_index](
                     query,
-                    temp_key,
-                    temp_value,
                     identity if self.pre_norm else None,
-                    query_pos=query_pos,
-                    key_pos=query_pos,
-                    attn_mask=attn_masks[attn_index],
-                    key_padding_mask=query_key_padding_mask,
+                    query_pos=tpv_pos,
+                    reference_points=ref_2d,
+                    spatial_shapes=ss,
+                    level_start_index=lsi,
                     **kwargs)
                 attn_index += 1
+                query = torch.cat(query, dim=1)
                 identity = query
 
             elif layer == 'norm':
                 query = self.norms[norm_index](query)
                 norm_index += 1
 
+            # image cross attention
             elif layer == 'cross_attn':
                 query = self.attentions[attn_index](
                     query,
                     key,
                     value,
                     identity if self.pre_norm else None,
-                    query_pos=query_pos,
-                    key_pos=key_pos,
-                    attn_mask=attn_masks[attn_index],
-                    key_padding_mask=key_padding_mask,
+                    spatial_shapes=spatial_shapes,
+                    level_start_index=level_start_index,
+                    reference_points_cams=reference_points_cams,
+                    tpv_masks=tpv_masks,
                     **kwargs)
                 attn_index += 1
                 identity = query
 
             elif layer == 'ffn':
-                query = self.ffns[ffn_index](
-                    query, identity if self.pre_norm else None)
+                ffn = self.ffns[ffn_index]
+                query = ffn(query, identity if self.pre_norm else None)
                 ffn_index += 1
-
+        query = torch.split(query, [tpv_h*tpv_w, tpv_z*tpv_h, tpv_w*tpv_z], dim=1)
         return query

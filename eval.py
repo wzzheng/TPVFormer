@@ -9,7 +9,7 @@ from dataloader.dataset import get_nuScenes_label_name
 from builder import loss_builder
 
 from mmcv import Config
-from mmdet3d.utils import get_root_logger
+from mmseg.utils import get_root_logger
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -55,8 +55,7 @@ def main(local_rank, args):
         import builtins
         builtins.print = pass_print
 
-    logger_name = 'mmseg'
-    logger = get_root_logger(log_file=None, log_level='INFO', name=logger_name)
+    logger = get_root_logger(log_file=None, log_level='INFO')
     logger.info(f'Config:\n{cfg.pretty_text}')
 
     # build model
@@ -101,8 +100,6 @@ def main(local_rank, args):
     # get optimizer, loss, scheduler
     loss_func, lovasz_softmax = \
         loss_builder.build(
-            wce=True, 
-            lovasz=True,
             ignore_label=ignore_label)
     
     CalMeanIou_vox = MeanIoU(unique_label, ignore_label, unique_label_str, 'vox')
@@ -115,7 +112,9 @@ def main(local_rank, args):
 
     map_location = 'cpu'
     ckpt = torch.load(cfg.resume_from, map_location=map_location)
-    print(my_model.load_state_dict(revise_ckpt(ckpt['state_dict']), strict=False))
+    if 'state_dict' in ckpt:
+        ckpt = ckpt['state_dict']
+    print(my_model.load_state_dict(revise_ckpt(ckpt), strict=False))
     print(f'successfully loaded ckpt')
 
     print_freq = cfg.print_freq
@@ -131,18 +130,19 @@ def main(local_rank, args):
             
             imgs = imgs.cuda()
             val_grid_float = val_grid.to(torch.float32).cuda()
+            val_grid_int = val_grid.to(torch.long).cuda()
             vox_label = val_vox_label.type(torch.LongTensor).cuda()
             val_pt_labs = val_pt_labs.cuda()
 
             predict_labels_vox, predict_labels_pts = my_model(img=imgs, img_metas=img_metas, points=val_grid_float)
-            if args.lovasz_input == 'voxel':
+            if cfg.lovasz_input == 'voxel':
                 lovasz_input = predict_labels_vox
                 lovasz_label = vox_label
             else:
                 lovasz_input = predict_labels_pts
                 lovasz_label = val_pt_labs
                 
-            if args.ce_input == 'voxel':
+            if cfg.ce_input == 'voxel':
                 ce_input = predict_labels_vox
                 ce_label = vox_label
             else:
@@ -161,10 +161,10 @@ def main(local_rank, args):
             
             predict_labels_vox = torch.argmax(predict_labels_vox, dim=1)
             predict_labels_vox = predict_labels_vox.detach().cpu()
-            for count in range(len(val_grid)):
+            for count in range(len(val_grid_int)):
                 CalMeanIou_pts._after_step(predict_labels_pts[count], val_pt_labs[count])
                 CalMeanIou_vox._after_step(
-                    predict_labels_vox[count, val_grid[count][:, 0], val_grid[count][:, 1], val_grid[count][:, 2]].flatten(),
+                    predict_labels_vox[count, val_grid_int[count][:, 0], val_grid_int[count][:, 1], val_grid_int[count][:, 2]].flatten(),
                     val_pt_labs[count])
             val_loss_list.append(loss.detach().cpu().numpy())
             if i_iter_val % print_freq == 0 and dist.get_rank() == 0:
@@ -173,8 +173,6 @@ def main(local_rank, args):
     
     val_miou_pts = CalMeanIou_pts._after_epoch()
     val_miou_vox = CalMeanIou_vox._after_epoch()
-
-    del val_vox_label, val_grid, val_grid_float
 
     logger.info('Current val miou pts is %.3f' % (val_miou_pts))
     logger.info('Current val miou vox is %.3f' % (val_miou_vox))
@@ -185,8 +183,6 @@ if __name__ == '__main__':
     # Eval settings
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--py-config', default='config/tpv_lidarseg.py')
-    parser.add_argument('--lovasz-input', type=str, default='points')
-    parser.add_argument('--ce-input', type=str, default='voxel')
     parser.add_argument('--ckpt-path', type=str, default='')
 
     args = parser.parse_args()

@@ -15,16 +15,14 @@ ext_module = ext_loader.load_ext(
 
 
 @ATTENTION.register_module()
-class TPVTemporalSelfAttention(BaseModule):
-    """An attention module used in BEVFormer based on Deformable-Detr.
-
-    `Deformable DETR: Deformable Transformers for End-to-End Object Detection.
-    <https://arxiv.org/pdf/2010.04159.pdf>`_.
+class TPVCrossViewHybridAttention(BaseModule):
+    """Cross view hybrid attention module used in TPVFormer.
+    Based on deformable attention.
 
     Args:
         embed_dims (int): The embedding dimension of Attention.
             Default: 256.
-        num_heads (int): Parallel attention heads. Default: 64.
+        num_heads (int): Parallel attention heads. Default: 8.
         num_levels (int): The number of feature map used in
             Attention. Default: 4.
         num_points (int): The number of sampling points for
@@ -40,8 +38,6 @@ class TPVTemporalSelfAttention(BaseModule):
             Default: None.
         init_cfg (obj:`mmcv.ConfigDict`): The Config for initialization.
             Default: None.
-        num_bev_queue (int): In this version, we only use one history BEV and one currenct BEV.
-         the length of BEV queue is 2.
     """
 
     def __init__(self,
@@ -49,12 +45,12 @@ class TPVTemporalSelfAttention(BaseModule):
                  num_heads=8,
                  num_levels=4,
                  num_points=4,
-                 num_bev_queue=2,
                  im2col_step=64,
                  dropout=0.1,
                  batch_first=True,
                  norm_cfg=None,
-                 init_cfg=None):
+                 init_cfg=None,
+                 num_tpv_queue=2):
 
         super().__init__(init_cfg)
         if embed_dims % num_heads != 0:
@@ -87,11 +83,11 @@ class TPVTemporalSelfAttention(BaseModule):
         self.num_levels = num_levels
         self.num_heads = num_heads
         self.num_points = num_points
-        self.num_bev_queue = num_bev_queue
+        self.num_tpv_queue = num_tpv_queue
         self.sampling_offsets = nn.Linear(
-            embed_dims*self.num_bev_queue, num_bev_queue*num_heads * num_levels * num_points * 2)
-        self.attention_weights = nn.Linear(embed_dims*self.num_bev_queue,
-                                           num_bev_queue*num_heads * num_levels * num_points)
+            embed_dims * num_tpv_queue, num_tpv_queue * num_heads * num_levels * num_points * 2)
+        self.attention_weights = nn.Linear(embed_dims * num_tpv_queue,
+                                           num_tpv_queue * num_heads * num_levels * num_points)
         self.value_proj = nn.Linear(embed_dims, embed_dims)
         self.output_proj = nn.Linear(embed_dims, embed_dims)
         self.init_weights()
@@ -106,7 +102,7 @@ class TPVTemporalSelfAttention(BaseModule):
         grid_init = (grid_init /
                      grid_init.abs().max(-1, keepdim=True)[0]).view(
             self.num_heads, 1, 1,
-            2).repeat(1, self.num_levels*self.num_bev_queue, self.num_points, 1)
+            2).repeat(1, self.num_levels*self.num_tpv_queue, self.num_points, 1)
 
         for i in range(self.num_points):
             grid_init[:, :, i, :] *= i + 1
@@ -123,11 +119,9 @@ class TPVTemporalSelfAttention(BaseModule):
                 value=None,
                 identity=None,
                 query_pos=None,
-                key_padding_mask=None,
                 reference_points=None,
                 spatial_shapes=None,
                 level_start_index=None,
-                flag='decoder',
                 **kwargs):
         """Forward Function of MultiScaleDeformAttention.
 
@@ -162,7 +156,7 @@ class TPVTemporalSelfAttention(BaseModule):
                 as [0, h_0*w_0, h_0*w_0+h_1*w_1, ...].
 
         Returns:
-             Tensor: forwarded results with shape [num_query, bs, embed_dims].
+             Tensor: forwarded results with shape [bs, num_query, embed_dims].
         """
 
         if value is None:
@@ -179,41 +173,36 @@ class TPVTemporalSelfAttention(BaseModule):
         bs,  num_query, _ = query.shape
         _, num_value, _ = value.shape
         assert (spatial_shapes[:, 0] * spatial_shapes[:, 1]).sum() == num_value
-        assert self.num_bev_queue == 2
+        assert self.num_tpv_queue == 2
 
         query = torch.cat([value[:bs], query], -1)
         value = self.value_proj(value)
-
-        if key_padding_mask is not None:
-            value = value.masked_fill(key_padding_mask[..., None], 0.0)
-
-        value = value.reshape(self.num_bev_queue*bs,
+        value = value.reshape(self.num_tpv_queue*bs,
                               num_value, self.num_heads, -1)
 
         sampling_offsets = self.sampling_offsets(query)
         sampling_offsets = sampling_offsets.view(
-            bs, num_query, self.num_heads,  self.num_bev_queue, self.num_levels, self.num_points, 2)
+            bs, num_query, self.num_heads, self.num_tpv_queue, self.num_levels, self.num_points, 2)
         attention_weights = self.attention_weights(query).view(
-            bs, num_query,  self.num_heads, self.num_bev_queue, self.num_levels * self.num_points)
+            bs, num_query,  self.num_heads, self.num_tpv_queue, self.num_levels * self.num_points)
         attention_weights = attention_weights.softmax(-1)
 
         attention_weights = attention_weights.view(bs, num_query,
                                                    self.num_heads,
-                                                   self.num_bev_queue,
+                                                   self.num_tpv_queue,
                                                    self.num_levels,
                                                    self.num_points)
 
         attention_weights = attention_weights.permute(3, 0, 1, 2, 4, 5)\
-            .reshape(bs*self.num_bev_queue, num_query, self.num_heads, self.num_levels, self.num_points).contiguous()
+            .reshape(bs*self.num_tpv_queue, num_query, self.num_heads, self.num_levels, self.num_points).contiguous()
         sampling_offsets = sampling_offsets.permute(3, 0, 1, 2, 4, 5, 6)\
-            .reshape(bs*self.num_bev_queue, num_query, self.num_heads, self.num_levels, self.num_points, 2)
+            .reshape(bs*self.num_tpv_queue, num_query, self.num_heads, self.num_levels, self.num_points, 2)
 
         if reference_points.shape[-1] == 2:
             offset_normalizer = torch.stack(
                 [spatial_shapes[..., 1], spatial_shapes[..., 0]], -1)
             sampling_locations = reference_points[:, :, None, :, None, :] \
-                + sampling_offsets \
-                / offset_normalizer[None, None, None, :, None, :]
+                + sampling_offsets / offset_normalizer[None, None, None, :, None, :]
 
         elif reference_points.shape[-1] == 4:
             sampling_locations = reference_points[:, :, None, :, None, :2] \
@@ -237,13 +226,13 @@ class TPVTemporalSelfAttention(BaseModule):
         else:
             output = multi_scale_deformable_attn_pytorch(
                 value, spatial_shapes, sampling_locations, attention_weights)
-        # output shape (bs*num_bev_queue, num_query, embed_dims)
-        # (bs*num_bev_queue, num_query, embed_dims)-> (num_query, embed_dims, bs*num_bev_queue)
+        # output shape (bs*num_tpv_queue, num_query, embed_dims)
+        # (bs*num_tpv_queue, num_query, embed_dims)-> (num_query, embed_dims, bs*num_tpv_queue)
         output = output.permute(1, 2, 0)
 
         # fuse history value and current value
-        # (num_query, embed_dims, bs*num_bev_queue)-> (num_query, embed_dims, bs)
-        output = (output[..., :bs] + output[..., bs:])/self.num_bev_queue
+        # (num_query, embed_dims, bs*num_tpv_queue)-> (num_query, embed_dims, bs)
+        output = (output[..., :bs] + output[..., bs:])/self.num_tpv_queue
 
         # (num_query, embed_dims, bs)-> (bs, num_query, embed_dims)
         output = output.permute(2, 0, 1)

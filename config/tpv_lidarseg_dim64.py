@@ -10,25 +10,25 @@ ce_input = 'voxel'
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 
-_dim_ = 96
-num_heads = 6
-_pos_dim_ = [36, 36, 24]
-_ffn_dim_ = _dim_ * 2
+_dim_ = 64
+num_heads = 4
+_pos_dim_ = [24, 24, 16]
+_ffn_dim_ = _dim_*2
 _num_levels_ = 4
 _num_cams_ = 6
 
-tpv_h_ = 150
-tpv_w_ = 150
+tpv_h_ = 200
+tpv_w_ = 200
 tpv_z_ = 16
 scale_h = 1
 scale_w = 1
 scale_z = 1
-tpv_encoder_layers = 3
-num_points_in_pillar = [3, 24, 24]
-num_points = [6, 48, 48]
-hybrid_attn_anchors = 8
+tpv_encoder_layers = 5
+num_points_in_pillar = [4, 32, 32]
+num_points = [4, 32, 32]
+hybrid_attn_anchors = 16
 hybrid_attn_points = 16
-hybrid_attn_init = 1
+hybrid_attn_init = 0
 
 grid_size = [tpv_h_*scale_h, tpv_w_*scale_w, tpv_z_*scale_z]
 nbr_class = 17
@@ -98,7 +98,7 @@ self_layer = dict(
 model = dict(
     type='TPVFormer',
     use_grid_mask=True,
-    tpv_aggregator = dict(
+    tpv_aggregator=dict(
         type='TPVAggregator',
         tpv_h=tpv_h_,
         tpv_w=tpv_w_,
@@ -153,8 +153,8 @@ model = dict(
                 self_cross_layer,
                 self_cross_layer,
                 self_cross_layer,
-                # self_layer,
-                # self_layer,
+                self_layer,
+                self_layer,
             ]),
         positional_encoding=dict(
             type='CustomPositionalEncoding',

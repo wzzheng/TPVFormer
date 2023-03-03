@@ -1,4 +1,6 @@
 
-from .dense_heads import *
-from .detectors import *
 from .modules import *
+
+from .tpv_aggregator import TPVAggregator
+from .tpvformer import TPVFormer
+from .tpv_head import TPVFormerHead

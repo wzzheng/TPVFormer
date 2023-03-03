@@ -7,18 +7,19 @@ from mmcv.cnn import xavier_init, constant_init
 from mmcv.cnn.bricks.registry import ATTENTION
 from mmcv.cnn.bricks.transformer import build_attention
 import math
-from mmcv.runner import force_fp32
+from mmcv.runner import force_fp32, auto_fp16
 from mmcv.runner.base_module import BaseModule
-
 from mmcv.utils import ext_loader
 from .multi_scale_deformable_attn_function import MultiScaleDeformableAttnFunction_fp32
+
+
 ext_module = ext_loader.load_ext(
     '_ext', ['ms_deform_attn_backward', 'ms_deform_attn_forward'])
 
 
 @ATTENTION.register_module()
-class TPVSpatialCrossAttention(BaseModule):
-    """An attention module used in BEVFormer.
+class TPVImageCrossAttention(BaseModule):
+    """Image cross attention module used in TPVFormer.
     Args:
         embed_dims (int): The embedding dimension of Attention.
             Default: 256.
@@ -41,9 +42,9 @@ class TPVSpatialCrossAttention(BaseModule):
                      type='MSDeformableAttention3D',
                      embed_dims=256,
                      num_levels=4),
-                 bev_h=None,
-                 bev_w=None,
-                 bev_z=None,
+                 tpv_h=None,
+                 tpv_w=None,
+                 tpv_z=None,
                  **kwargs
                  ):
         super().__init__(init_cfg)
@@ -57,7 +58,7 @@ class TPVSpatialCrossAttention(BaseModule):
         self.num_cams = num_cams
         self.output_proj = nn.Linear(embed_dims, embed_dims)
         self.batch_first = batch_first
-        self.bev_h, self.bev_w, self.bev_z = bev_h, bev_w, bev_z
+        self.tpv_h, self.tpv_w, self.tpv_z = tpv_h, tpv_w, tpv_z
         self.init_weight()
 
     def init_weight(self):
@@ -70,23 +71,19 @@ class TPVSpatialCrossAttention(BaseModule):
                 key,
                 value,
                 residual=None,
-                query_pos=None,
-                key_padding_mask=None,
-                reference_points=None,
                 spatial_shapes=None,
                 reference_points_cams=None,
-                bev_masks=None,
+                tpv_masks=None,
                 level_start_index=None,
-                flag='encoder',
                 **kwargs):
         """Forward Function of Detr3DCrossAtten.
         Args:
             query (Tensor): Query of Transformer with shape
-                (num_query, bs, embed_dims).
+                (bs, num_query, embed_dims).
             key (Tensor): The key tensor with shape
-                `(num_key, bs, embed_dims)`.
+                `(num_cam, H*W++, bs, embed_dims)`.
             value (Tensor): The value tensor with shape
-                `(num_key, bs, embed_dims)`. (B, N, C, H, W)
+                `(num_cam, H*W++, bs, embed_dims)`.
             residual (Tensor): The tensor used for addition, with the
                 same shape as `x`. Default None. If None, `x` will be used.
             query_pos (Tensor): The positional encoding for `query`.
@@ -118,31 +115,29 @@ class TPVSpatialCrossAttention(BaseModule):
 
         if residual is None:
             inp_residual = query
-        if query_pos is not None:
-            query = query + query_pos
 
         bs, num_query, _ = query.size()
 
-        queries = torch.split(query, [self.bev_h*self.bev_w, self.bev_z*self.bev_h, self.bev_w*self.bev_z], dim=1)
+        queries = torch.split(query, [self.tpv_h*self.tpv_w, self.tpv_z*self.tpv_h, self.tpv_w*self.tpv_z], dim=1)
         if residual is None:
             slots = [torch.zeros_like(q) for q in queries]
         indexeses = []
         max_lens = []
         queries_rebatches = []
         reference_points_rebatches = []
-        for bev_idx, bev_mask in enumerate(bev_masks):
+        for tpv_idx, tpv_mask in enumerate(tpv_masks):
             indexes = []
-            for _, mask_per_img in enumerate(bev_mask):
+            for _, mask_per_img in enumerate(tpv_mask):
                 index_query_per_img = mask_per_img[0].sum(-1).nonzero().squeeze(-1)
                 indexes.append(index_query_per_img)
             max_len = max([len(each) for each in indexes])
             max_lens.append(max_len)
             indexeses.append(indexes)
 
-            reference_points_cam = reference_points_cams[bev_idx]
+            reference_points_cam = reference_points_cams[tpv_idx]
             D = reference_points_cam.size(3)
 
-            queries_rebatch = queries[bev_idx].new_zeros(
+            queries_rebatch = queries[tpv_idx].new_zeros(
                 [bs * self.num_cams, max_len, self.embed_dims])
             reference_points_rebatch = reference_points_cam.new_zeros(
                 [bs * self.num_cams, max_len, D, 2])
@@ -150,7 +145,7 @@ class TPVSpatialCrossAttention(BaseModule):
             for i, reference_points_per_img in enumerate(reference_points_cam):
                 for j in range(bs):
                     index_query_per_img = indexes[i]
-                    queries_rebatch[j * self.num_cams + i, :len(index_query_per_img)] = queries[bev_idx][j, index_query_per_img]
+                    queries_rebatch[j * self.num_cams + i, :len(index_query_per_img)] = queries[tpv_idx][j, index_query_per_img]
                     reference_points_rebatch[j * self.num_cams + i, :len(index_query_per_img)] = reference_points_per_img[j, index_query_per_img]
             
             queries_rebatches.append(queries_rebatch)
@@ -163,19 +158,21 @@ class TPVSpatialCrossAttention(BaseModule):
         value = value.permute(0, 2, 1, 3).view(
             self.num_cams * bs, l, self.embed_dims)
 
-        queries = self.deformable_attention(query=queries_rebatches, key=key, value=value, ref_3d=None,
-                                            reference_points=reference_points_rebatches, spatial_shapes=spatial_shapes,
-                                            level_start_index=level_start_index, indexeses=indexeses)
+        queries = self.deformable_attention(
+            query=queries_rebatches, key=key, value=value,
+            reference_points=reference_points_rebatches, 
+            spatial_shapes=spatial_shapes,
+            level_start_index=level_start_index)
         
-        for bev_idx, indexes in enumerate(indexeses):
+        for tpv_idx, indexes in enumerate(indexeses):
             for i, index_query_per_img in enumerate(indexes):
                 for j in range(bs):
-                    slots[bev_idx][j, index_query_per_img] += queries[bev_idx][j * self.num_cams + i, :len(index_query_per_img)]
+                    slots[tpv_idx][j, index_query_per_img] += queries[tpv_idx][j * self.num_cams + i, :len(index_query_per_img)]
 
-            count = bev_masks[bev_idx].sum(-1) > 0
+            count = tpv_masks[tpv_idx].sum(-1) > 0
             count = count.permute(1, 2, 0).sum(-1)
             count = torch.clamp(count, min=1.0)
-            slots[bev_idx] = slots[bev_idx] / count[..., None]
+            slots[tpv_idx] = slots[tpv_idx] / count[..., None]
         slots = torch.cat(slots, dim=1)
         slots = self.output_proj(slots)
 
@@ -184,7 +181,7 @@ class TPVSpatialCrossAttention(BaseModule):
 
 @ATTENTION.register_module()
 class TPVMSDeformableAttention3D(BaseModule):
-    """An attention module used in BEVFormer based on Deformable-Detr.
+    """An attention module used in TPVFormer based on Deformable-Detr.
     `Deformable DETR: Deformable Transformers for End-to-End Object Detection.
     <https://arxiv.org/pdf/2010.04159.pdf>`_.
     Args:
@@ -221,9 +218,9 @@ class TPVMSDeformableAttention3D(BaseModule):
                  norm_cfg=None,
                  init_cfg=None,
                  floor_sampling_offset=True,
-                 bev_h=None,
-                 bev_w=None,
-                 bev_z=None,
+                 tpv_h=None,
+                 tpv_w=None,
+                 tpv_z=None,
                 ):
         super().__init__(init_cfg)
         if embed_dims % num_heads != 0:
@@ -261,7 +258,7 @@ class TPVMSDeformableAttention3D(BaseModule):
         self.base_z_anchors = num_z_anchors[0]
         self.points_multiplier = [points // self.base_z_anchors for points in num_z_anchors]
         self.pc_range = pc_range
-        self.bev_h, self.bev_w, self.bev_z = bev_h, bev_w, bev_z
+        self.tpv_h, self.tpv_w, self.tpv_z = tpv_h, tpv_w, tpv_z
         self.sampling_offsets = nn.ModuleList([
             nn.Linear(embed_dims, num_heads * num_levels * num_points[i] * 2) for i in range(3)
         ])
@@ -278,13 +275,10 @@ class TPVMSDeformableAttention3D(BaseModule):
         for i in range(3):
             constant_init(self.sampling_offsets[i], 0.)
             thetas = torch.arange(
-                self.num_heads,
-                dtype=torch.float32) * (2.0 * math.pi / self.num_heads)
+                self.num_heads, dtype=torch.float32) * (2.0 * math.pi / self.num_heads)
             grid_init = torch.stack([thetas.cos(), thetas.sin()], -1)
-            grid_init = (grid_init /
-                        grid_init.abs().max(-1, keepdim=True)[0]).view(
-                self.num_heads, 1, 1,
-                2).repeat(1, self.num_levels, self.num_points[i], 1)
+            grid_init = (grid_init / grid_init.abs().max(-1, keepdim=True)[0]).view(
+                self.num_heads, 1, 1, 2).repeat(1, self.num_levels, self.num_points[i], 1)
             grid_init = grid_init.reshape(self.num_heads, self.num_levels, self.num_z_anchors[i], -1, 2)
             for j in range(self.num_points[i] // self.num_z_anchors[i]):
                 grid_init[:, :, :, j, :] *= j + 1
@@ -336,14 +330,9 @@ class TPVMSDeformableAttention3D(BaseModule):
                 key=None,
                 value=None,
                 identity=None,
-                query_pos=None,
-                key_padding_mask=None,
-                ref_3d=None,
                 reference_points=None,
                 spatial_shapes=None,
                 level_start_index=None,
-                indexeses=None,
-                indexes_more=None,
                 **kwargs):
         """Forward Function of MultiScaleDeformAttention.
         Args:
@@ -383,8 +372,6 @@ class TPVMSDeformableAttention3D(BaseModule):
             value = query
         if identity is None:
             identity = query
-        if query_pos is not None:
-            query = query + query_pos
 
         if not self.batch_first:
             # change to (bs, num_query ,embed_dims)
@@ -397,8 +384,6 @@ class TPVMSDeformableAttention3D(BaseModule):
         assert (spatial_shapes[:, 0] * spatial_shapes[:, 1]).sum() == num_value
 
         value = self.value_proj(value)
-        if key_padding_mask is not None:
-            value = value.masked_fill(key_padding_mask[..., None], 0.0)
         value = value.view(bs, num_value, self.num_heads, -1)
 
         sampling_offsets, attention_weights = self.get_sampling_offsets_and_attention(query)
@@ -407,8 +392,8 @@ class TPVMSDeformableAttention3D(BaseModule):
         
         if reference_points.shape[-1] == 2:
             """
-            For each BEV query, it owns `num_Z_anchors` in 3D space that having different heights.
-            After proejcting, each BEV query has `num_Z_anchors` reference points in each 2D image.
+            For each TPV query, it owns `num_Z_anchors` in 3D space that having different heights.
+            After proejcting, each TPV query has `num_Z_anchors` reference points in each 2D image.
             For each referent point, we sample `num_points` sampling points.
             For `num_Z_anchors` reference points,  it has overall `num_points * num_Z_anchors` sampling points.
             """
