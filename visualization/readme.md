@@ -10,13 +10,19 @@ PyQt5==5.15.7
 
 For better visual effect, we highly recommend setting the scale_{h, w, z} params in the config file to a larger value to enable test-time upsampling.
 
-We use the command line argument "--mode" to determine what to visualize: 0 for occupancy, 1 for predicted point cloud, 2 for ground truth point cloud.
+We use the command line argument "--mode" to determine what to visualize: 0 for occupancy prediction, 1 for lidar segmentation prediction, 2 for lidar segmentation ground truth.
+
+![legend](../assets/visualize.png)
 
 ```
 python visualization/vis_frame.py --py-config config/tpv04_occupancy.py --work-dir out/tpv_occupancy --ckpt-path out/tpv_occupancy/latest.pth --save-path out/tpv_occupancy/frames --frame-idx 4509 --mode 0
 ```
 
 ## How to generate the video demo?
+
+![legend](../assets/sample.png)
+
+(A sampled frame from the video demo)
 
 Note that we also use the camera sweep data without annotation from nuScenes dataset in order to produce videos with higher fps.
 
