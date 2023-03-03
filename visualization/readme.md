@@ -18,6 +18,8 @@ We use the command line argument "--mode" to determine what to visualize: 0 for 
 python visualization/vis_frame.py --py-config config/tpv04_occupancy.py --work-dir out/tpv_occupancy --ckpt-path out/tpv_occupancy/latest.pth --save-path out/tpv_occupancy/frames --frame-idx 4509 --mode 0
 ```
 
+The color bar can be found in assets/legend.png.
+
 ## How to generate the video demo?
 
 ![legend](../assets/sample.png)
@@ -49,3 +51,5 @@ python visualization/vis_scene.py --py-config config/tpv04_occupancy.py --work-d
 ```
 python visualization/generate_videos.py --scene-dir out/tpv_occupancy/videos --scene-name scene-0916 scene-0015
 ```
+
+The color bar can be found in assets/legend.png.
