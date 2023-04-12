@@ -9,6 +9,7 @@
 
 ## News
 
+- **[2023/4/12]** Check out [OccFormer](https://github.com/zhangyp15/OccFormer) for a high-performing head for occupancy prediction!
 - **[2023/3/3]** We have reorganized the code to improve readability.  
 - **[2023/2/28]** TPVFormer is accepted to CVPR 2023!
 - **[2023/2/26]** See [SurroundOcc](https://github.com/weiyithu/SurroundOcc) for a more dense 3D occupancy prediction!
@@ -116,6 +117,8 @@ Read visualization/readme.md for detailed instructions.
 Our code is based on [BEVFormer](https://github.com/fundamentalvision/BEVFormer) and [Cylinder3D](https://github.com/xinge008/Cylinder3D). Many thanks to them!
 
 Welcome to see  [SurroundOcc](https://github.com/weiyithu/SurroundOcc) for a more dense 3D occupancy prediction. You can also use [SurroundOcc](https://github.com/weiyithu/SurroundOcc)'s generated dense occupancy ground truths for training instead of sparse lidar supervision.
+
+Also, remember to check out [OccFormer](https://github.com/zhangyp15/OccFormer) for an effective and efficient transformer encoder-decoder specially designed for occupancy prediction.
 
 ## Citation
 
