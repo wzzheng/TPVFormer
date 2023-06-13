@@ -1,0 +1,12 @@
+scikit-image==0.18.1
+PyYAML==5.3.1
+tqdm==4.49.0
+scikit-learn==0.24.0
+pytorch-lightning==1.4.9
+opencv-python==4.5.1.48
+hydra-core==1.0.5
+numpy==1.20.3
+numba==0.53
+imageio
+protobuf~=3.19.0
+timm==0.4.12
