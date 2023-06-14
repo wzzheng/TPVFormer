@@ -87,7 +87,7 @@ $ python kitti_ssc/dataset/semantic_kitti/preprocess.py kitti_root=$KITTI_ROOT k
 
 ## Pretrained models
 
-Download MonoScene pretrained models [on SemanticKITTI](https://www.rocq.inria.fr/rits_files/computer-vision/monoscene/monoscene_kitti.ckpt) and [on NYUv2](https://www.rocq.inria.fr/rits_files/computer-vision/monoscene/monoscene_nyu.ckpt), then put them in the folder `/path/to/MonoScene/trained_models`.
+Download TPVFormer pretrained models [on SemanticKITTI](https://cloud.tsinghua.edu.cn/f/414ef11eefa74be1a350/?dl=1), then put them in the folder `TPVFormer/kitti_ssc/ckpts/tpv10/`.
 
 
 # Running
