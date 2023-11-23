@@ -10,6 +10,7 @@
 ## News
 
 - **[2023/11/23]** Check out our recent [SelfOcc](https://github.com/huang-yh/SelfOcc) for **self-supervised** 3D occupancy prediction! 
+- **[2023/6/14]** Code for Semantic Scene Completion on SemanticKITTI has been released.
 - **[2023/4/12]** Check out [OccFormer](https://github.com/zhangyp15/OccFormer) for a high-performing head for occupancy prediction!
 - **[2023/3/3]** We have reorganized the code to improve readability.  
 - **[2023/2/28]** TPVFormer is accepted to CVPR 2023!
@@ -36,7 +37,7 @@ Modern methods for vision-centric autonomous driving perception widely adopt the
 
 2. Install pytorch and torchvision with versions specified in requirements.txt
 
-3. Follow instructions in https://mmdetection3d.readthedocs.io/en/latest/getting_started.html#installation to install mmcv-full, mmdet, mmsegmentation and mmdet3d with versions specified in requirements.txt
+3. Follow instructions in https://mmdetection3d.readthedocs.io/en/latest/getting_started.html#installation to install mmcv-full, mmdet, and mmsegmentation with versions specified in requirements.txt
 
 4. Install timm, numba and pyyaml with versions specified in requirements.txt
 
@@ -98,6 +99,9 @@ python eval.py --py-config xxxx --ckpt-path xxxx
 ### Visualizations
 
 Read visualization/readme.md for detailed instructions.
+
+## Semantic Scene Completion on SemanticKITTI
+Please refer to [kitti_ssc](https://github.com/wzzheng/TPVFormer/tree/3734fe1e9af71fd93755996d2c74c3ab10d9d064/kitti_ssc) for more details.
 
 ## Comparisons with Tesla's Occupancy Network
 
