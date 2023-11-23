@@ -9,6 +9,7 @@
 
 ## News
 
+- **[2023/11/23]** Check out our recent [SelfOcc](https://github.com/huang-yh/SelfOcc) for **self-supervised** 3D occupancy prediction! 
 - **[2023/4/12]** Check out [OccFormer](https://github.com/zhangyp15/OccFormer) for a high-performing head for occupancy prediction!
 - **[2023/3/3]** We have reorganized the code to improve readability.  
 - **[2023/2/28]** TPVFormer is accepted to CVPR 2023!
