@@ -9,6 +9,7 @@
 
 ## News
 
+- **[2023/11/28]** We have released a 3D occupancy world model [OccWorld](https://github.com/wzzheng/OccWorld)! 
 - **[2023/11/23]** Check out our recent [SelfOcc](https://github.com/huang-yh/SelfOcc) for **self-supervised** 3D occupancy prediction! 
 - **[2023/6/14]** Code for Semantic Scene Completion on SemanticKITTI has been released.
 - **[2023/4/12]** Check out [OccFormer](https://github.com/zhangyp15/OccFormer) for a high-performing head for occupancy prediction!

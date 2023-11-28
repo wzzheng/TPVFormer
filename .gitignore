@@ -133,3 +133,4 @@ ckpts/
 data/
 out/
 outputs/
+.DS_Store
