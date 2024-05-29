@@ -12,7 +12,7 @@ For better visual effect, we highly recommend setting the scale_{h, w, z} params
 
 We use the command line argument "--mode" to determine what to visualize: 0 for occupancy prediction, 1 for lidar segmentation prediction, 2 for lidar segmentation ground truth.
 
-![legend](../assets/visualize.png)
+![legend](../assets/Visualize.png)
 
 ```
 python visualization/vis_frame.py --py-config config/tpv04_occupancy.py --work-dir out/tpv_occupancy --ckpt-path out/tpv_occupancy/latest.pth --save-path out/tpv_occupancy/frames --frame-idx 4509 --mode 0
