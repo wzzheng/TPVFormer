@@ -7,4 +7,4 @@ numpy==1.23.1
 Pillow==9.3.0
 PyYAML==6.0
 timm==0.4.12
-torch==1.10.0
+torch==1.13.1
